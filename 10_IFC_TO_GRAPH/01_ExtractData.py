@@ -122,6 +122,7 @@ def main():
     ### Adjacancy of Walls
     wall_to_wall_connectivity(ifc_file, storey_name)
 
+    print("Data created! Done!")
 
 if __name__ == "__main__":
     main()

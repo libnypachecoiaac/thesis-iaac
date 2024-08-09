@@ -23,6 +23,8 @@ def find_touching_walls(topology1, topology2):
 
 def main(ifc_file, storey_name):
 
+    print("Starting Check for Wall connectivity")
+
     # Create topology from the IFC file
     topology = Topology.ByIFCFile(file=ifc_file, transferDictionaries=True, includeTypes=['IfcWall'])
     print("Initial topology created successfully.")
@@ -37,7 +39,7 @@ def main(ifc_file, storey_name):
                 storey = rel.RelatingStructure
                 if storey and storey.Name == storey_name:
                     wall_guids_in_storey.append(wall.GlobalId)
-                break  # Sobald die Etage gefunden wurde, können wir die Schleife verlassen
+                break 
 
     topologies_in_storey = []
 
@@ -50,7 +52,7 @@ def main(ifc_file, storey_name):
     touching_walls = []
 
     for i in range(len(topologies_in_storey)):
-        print(f"Check of Wall {i}")
+        print(f"Check of Wall {i} / {len(topologies_in_storey)}")
         for j in range(i + 1, len(topologies_in_storey)):
             if find_touching_walls(topologies_in_storey[i], topologies_in_storey[j]):
                 touching_walls.append((i, j))
@@ -77,7 +79,9 @@ def main(ifc_file, storey_name):
     with open(output_file, mode='w', newline='') as file:
         writer = csv.writer(file, delimiter=';')
         for key, value in touching_walls_dict.items():
-            row = [key] + value
+            # Combine the touching wall GUIDs into a single item separated by commas
+            touching_guids = ",".join(value)
+            row = [key, touching_guids]
             writer.writerow(row)
 
     print(f'Results written to {output_file}')

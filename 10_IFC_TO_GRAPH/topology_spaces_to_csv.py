@@ -37,7 +37,9 @@ def main(building):
     csv_data = []
     for cell_name, touch_cell_names in touching_cells.items():
         if cell_name not in touch_cell_names:
-            row = [cell_name] + touch_cell_names
+            # Combine the touching cell names into a single item separated by commas
+            touching_guids = ",".join(touch_cell_names)
+            row = [cell_name, touching_guids]
             csv_data.append(row)
 
     # Write to CSV

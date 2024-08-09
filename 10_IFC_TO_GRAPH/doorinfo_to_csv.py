@@ -29,10 +29,13 @@ def main(ifc_file, all_doors, target_storey):
         with open('Output02_RoomToRoom_ByDoors.csv', 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile, delimiter=';')
             for door_global_id, room_global_ids in door_to_room.items():
-                csvwriter.writerow([door_global_id] + room_global_ids)
+                # Combine the room GUIDs into a single item separated by commas
+                room_guids_combined = ",".join(room_global_ids)
+                csvwriter.writerow([door_global_id, room_guids_combined])
         print("Data has been written to Output02_RoomToRoom_ByDoors.csv")
     else:
         print("door_to_room is empty, no data to write to CSV.")
+
 
 if __name__ == "__main__":
     main()
