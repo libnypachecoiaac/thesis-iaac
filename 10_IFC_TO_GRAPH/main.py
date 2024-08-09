@@ -113,7 +113,11 @@ def main():
 
 
 
-    ###
+    ### Hostelement of Windows and Doors
+
+
+
+    ### Adjacancy of Walls
 
 
 
