@@ -36,7 +36,7 @@ def main(ifc_file, target_storey, filtered_spaces):
                 ",".join(entry["walls"])
             ])
 
-    print("Results have been successfully saved to Output04_RoomBoundingWalls.csv")
+    print("Data has been written to Output04_RoomBoundingWalls.csv")
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,8 @@ from topology_spaces_to_csv import main as topology_spaces_to_csv
 from doorinfo_to_csv import main as doorinfo_to_csv
 from windowinfo_to_csv import main as windowinfo_to_csv
 from room_bounding_walls_to_csv import main as room_bounding_walls_to_csv
+from hosts_of_windows_and_doors import main as hosts_of_windows_and_doors
+from wall_to_wall_connectivity import main as wall_to_wall_connectivity
 
 def filter_ifcspaces_by_storey(spaces, storey_name):
     """Filter IfcSpaces by the given storey name."""
@@ -114,11 +116,11 @@ def main():
 
 
     ### Hostelement of Windows and Doors
-
+    hosts_of_windows_and_doors(ifc_file, ifc_storey)
 
 
     ### Adjacancy of Walls
-
+    wall_to_wall_connectivity(ifc_file, storey_name)
 
 
 if __name__ == "__main__":
