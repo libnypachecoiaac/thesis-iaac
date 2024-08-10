@@ -2,12 +2,10 @@ import ifcopenshell
 import re
 import networkx as nx
 import pandas as pd
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-import plotly.io as pio
 import csv
 import pickle
 import os
+from pyvis.network import Network
 
 # Funktion zum Laden der IFC-Datei
 def load_ifc_file(file_path):
@@ -185,7 +183,7 @@ def main():
     for space in spaces:
         node_label = f"Room_{space.Name}"
         global_id = space.GlobalId
-        G.add_node(node_label, color='yellow', GlobalId=global_id, hovertext=f"GlobalId: {global_id}")
+        G.add_node(node_label, color='yellow', GlobalId=global_id)
 
     # Raumverbindungen verarbeiten
     process_csv_room_connections(G, csv_room_to_room, "Direct")
@@ -208,44 +206,29 @@ def main():
     # Elemente in Wände einfügen
     process_walls_and_rooms(G, csv_host_elements, ifc_file.by_type("IfcWall"), "HostedBy")
 
-    # Knotenpositionen berechnen
-    pos = nx.spring_layout(G)
+    # Pyvis Network erstellen und visualisieren
+    net = Network(notebook=False, height="1200px", width="1600px", select_menu=True, filter_menu=True)
+    net.from_nx(G)
 
-    # Kanten und Knoten für Plotly vorbereiten
-    edge_trace = []
-    for edge in G.edges(data=True):
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        color = ('blue' if edge[2].get('Access') == 'Direct' else
-                 'orange' if edge[2].get('Access') == 'Door' else
-                 'purple' if edge[2].get('Access') == 'Window' else
-                 'grey' if edge[2].get('ContainedIn') else
-                 'red' if edge[2].get('Category') == 'IsConnected' else
-                 'green' if edge[2].get('Category') == 'HostedBy' else
-                 'black')
-        hovertext = f"{edge[0]} -- {edge[1]}<br>Category: {edge[2].get('Category', 'N/A')}<br>Access: {edge[2].get('Access', 'N/A')}"
-        edge_trace.append(go.Scatter(x=[x0, x1, None], y=[y0, y1, None],
-                                     line=dict(width=1, color=color),
-                                     hoverinfo='text', mode='lines',
-                                     text=hovertext))
+    # Farben der Knoten setzen
+    for node in net.nodes:
+        node['color'] = G.nodes[node['id']]['color']
+        node['title'] = f"GlobalId: {G.nodes[node['id']]['GlobalId']}"
 
-    node_trace = go.Scatter(x=[pos[node][0] for node in G.nodes], y=[pos[node][1] for node in G.nodes],
-                            text=[G.nodes[node].get("hovertext", node) for node in G.nodes],
-                            mode='markers+text',
-                            textposition='top center', hoverinfo='text',
-                            marker=dict(showscale=False, color=[G.nodes[node]['color'] for node in G.nodes], size=10, line_width=2))
+    # Farben der Kanten setzen und zusätzliche Informationen hinzufügen
+    for edge in net.edges:
+        edge_data = G.edges[(edge['from'], edge['to'])]
+        edge['color'] = ('blue' if edge_data.get('Access') == 'Direct' else
+                        'orange' if edge_data.get('Access') == 'Door' else
+                        'purple' if edge_data.get('Access') == 'Window' else
+                        'grey' if edge_data.get('Category') == 'ContainedIn' else
+                        'red' if edge_data.get('Category') == 'IsConnected' else
+                        'green' if edge_data.get('Category') == 'HostedBy' else
+                        'black')
+        edge['title'] = f"Category: {edge_data.get('Category', 'N/A')}<br>Access: {edge_data.get('Access', 'N/A')}"
 
-    # Plotly-Figur erstellen und speichern
-    fig = go.Figure(data=edge_trace + [node_trace],
-                    layout=go.Layout(showlegend=False, hovermode='closest',
-                                     margin=dict(b=20, l=5, r=5, t=40),
-                                     xaxis=dict(showgrid=False, zeroline=False),
-                                     yaxis=dict(showgrid=False, zeroline=False)))
-    pio.write_html(fig, 'graph.html', auto_open=False)
-
-    # NetworkX-Graph speichern
-    with open('network_graph.pkl', 'wb') as f:
-        pickle.dump(G, f)
+    # HTML-Datei erstellen und anzeigen
+    net.write_html("interactive_graph.html")
 
 # Skript ausführen
 if __name__ == "__main__":
