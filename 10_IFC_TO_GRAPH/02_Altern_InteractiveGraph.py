@@ -31,8 +31,8 @@ def filter_spaces_by_name(spaces):
             filtered_spaces.append(space)
     return filtered_spaces
 
-# Funktion zum Laden und Verarbeiten einer CSV-Datei für Rauminformationen
-def process_csv_room_connections(G, csv_file, access_type):
+# Funktion zur Verarbeitung der "Direct" Verbindungen aus Output01_RoomToRoom_BySeparationLine.csv
+def process_direct_connections(G, csv_file):
     edges = []
     with open(csv_file, 'r') as file:
         for line in file:
@@ -41,9 +41,37 @@ def process_csv_room_connections(G, csv_file, access_type):
             if len(parts) > 1:
                 connected_rooms_global_ids = parts[1].split(',')
                 for neighbor_global_id in connected_rooms_global_ids:
-                    edges.append((main_room_global_id, neighbor_global_id))
+                    # Filtere Selbstreferenzen
+                    if main_room_global_id != neighbor_global_id:
+                        edges.append((main_room_global_id, neighbor_global_id))
     
     for edge in edges:
+        room1 = None
+        room2 = None
+        for node in G.nodes:
+            if G.nodes[node]["GlobalId"] == edge[0]:
+                room1 = node
+            if G.nodes[node]["GlobalId"] == edge[1]:
+                room2 = node
+        if room1 and room2:
+            G.add_edge(room1, room2, Access="Direct")
+
+# Funktion zur Verarbeitung der "Door" und "Window" Verbindungen aus den jeweiligen CSVs
+def process_element_connections(G, csv_file, access_type):
+    element_edges = []
+    with open(csv_file, 'r') as file:
+        for line in file:
+            parts = line.strip().split(';')
+            element_global_id = parts[0]
+            if len(parts) > 1:
+                connected_rooms_global_ids = parts[1].split(',')
+                for i in range(len(connected_rooms_global_ids) - 1):
+                    for j in range(i + 1, len(connected_rooms_global_ids)):
+                        # Filtere Selbstreferenzen
+                        if connected_rooms_global_ids[i] != connected_rooms_global_ids[j]:
+                            element_edges.append((connected_rooms_global_ids[i], connected_rooms_global_ids[j]))
+
+    for edge in element_edges:
         room1 = None
         room2 = None
         for node in G.nodes:
@@ -185,25 +213,31 @@ def main():
         global_id = space.GlobalId
         G.add_node(node_label, color='yellow', GlobalId=global_id)
 
-    # Raumverbindungen verarbeiten
-    process_csv_room_connections(G, csv_room_to_room, "Direct")
+    # Raumverbindungen für "Direct" (Wandverbindungen)
+    process_direct_connections(G, csv_room_to_room)
 
-    # Türen als Knoten und Kanten hinzufügen
+    # Raumverbindungen für "Door" (Türverbindungen)
+    process_element_connections(G, csv_doors, "Door")
+
+    # Raumverbindungen für "Window" (Fensterverbindungen)
+    process_element_connections(G, csv_windows, "Window")
+
+    # # Türen als Knoten und Kanten hinzufügen
     process_doors_and_windows(G, ifc_file, csv_doors, "IfcDoor", 'blue', "ContainedIn")
 
-    # Fenster als Knoten und Kanten hinzufügen
+    # # Fenster als Knoten und Kanten hinzufügen
     process_doors_and_windows(G, ifc_file, csv_windows, "IfcWindow", 'purple', "ContainedIn")
 
-    # Wände verarbeiten und als Knoten hinzufügen
+    # # Wände verarbeiten und als Knoten hinzufügen
     process_walls(G, ifc_file, storey_name)
 
-    # Wände und Räume verbinden
+    # # Wände und Räume verbinden
     process_walls_and_rooms(G, csv_walls, ifc_file.by_type("IfcWall"), "ContainedIn")
 
-    # Wand-Adjazenz verarbeiten
+    # # Wand-Adjazenz verarbeiten
     process_wall_adjacency(G, csv_wall_adjacency, ifc_file.by_type("IfcWall"))
 
-    # Elemente in Wände einfügen
+    # # Elemente in Wände einfügen
     process_walls_and_rooms(G, csv_host_elements, ifc_file.by_type("IfcWall"), "HostedBy")
 
     # Pyvis Network erstellen und visualisieren
@@ -219,16 +253,18 @@ def main():
     for edge in net.edges:
         edge_data = G.edges[(edge['from'], edge['to'])]
         edge['color'] = ('blue' if edge_data.get('Access') == 'Direct' else
-                        'orange' if edge_data.get('Access') == 'Door' else
-                        'purple' if edge_data.get('Access') == 'Window' else
-                        'grey' if edge_data.get('Category') == 'ContainedIn' else
-                        'red' if edge_data.get('Category') == 'IsConnected' else
-                        'green' if edge_data.get('Category') == 'HostedBy' else
-                        'black')
+                         'green' if edge_data.get('Access') == 'Door' else
+                         'red' if edge_data.get('Access') == 'Window' else
+                         'grey' if edge_data.get('Category') == 'ContainedIn' else
+                         'red' if edge_data.get('Category') == 'IsConnected' else
+                         'green' if edge_data.get('Category') == 'HostedBy' else
+                         'black')
         edge['title'] = f"Category: {edge_data.get('Category', 'N/A')}<br>Access: {edge_data.get('Access', 'N/A')}"
 
     # HTML-Datei erstellen und anzeigen
     net.write_html("interactive_graph.html")
+
+    print("END")
 
 # Skript ausführen
 if __name__ == "__main__":
