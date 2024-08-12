@@ -1,9 +1,7 @@
 import ifcopenshell
 import re
 import networkx as nx
-import pandas as pd
 import csv
-import pickle
 import os
 from pyvis.network import Network
 
@@ -114,6 +112,34 @@ def process_doors_and_windows(G, ifc_file, csv_file, element_type, color, catego
         if room:
             G.add_edge(element, room, Category=category)
 
+# Funktion zum Verarbeiten der CSV-Datei für Hosts (Fenster/Türen) und Wände
+def process_element_hosts(G, ifc_file, csv_file, all_walls):
+    def get_element_oid_by_guid(elements, guid):
+        for element in elements:
+            if element.GlobalId == guid:
+                return element.id()
+        return None
+    
+    with open(csv_file, 'r') as file:
+        reader = csv.reader(file, delimiter=';')
+        for row in reader:
+            element_type = row[0]  # z.B. "IfcDoor" oder "IfcWindow"
+            element_guid = row[1]  # GlobalId des Fensters oder der Tür
+            wall_guid = row[2]     # GlobalId der Wand, in der das Element eingebaut ist
+
+            # OID des Elements abrufen
+            element_oid = get_element_oid_by_guid(ifc_file.by_type(element_type), element_guid)
+            if element_oid is not None:
+                element_node = f"{element_type.split('Ifc')[-1]}_{element_oid}"
+                
+                # OID der Wand abrufen
+                wall_oid = get_element_oid_by_guid(all_walls, wall_guid)
+                if wall_oid is not None:
+                    wall_node = f"Wall_{wall_oid}"
+                    
+                    if element_node in G and wall_node in G:
+                        G.add_edge(element_node, wall_node, Category="HostedBy")
+
 # Funktion zum Filtern von IfcWalls nach Geschossname und Hinzufügen als Knoten
 def process_walls(G, ifc_file, storey_name):
     def get_storey(element):
@@ -222,23 +248,23 @@ def main():
     # Raumverbindungen für "Window" (Fensterverbindungen)
     process_element_connections(G, csv_windows, "Window")
 
-    # # Türen als Knoten und Kanten hinzufügen
+    # Türen als Knoten und Kanten hinzufügen
     process_doors_and_windows(G, ifc_file, csv_doors, "IfcDoor", 'blue', "ContainedIn")
 
-    # # Fenster als Knoten und Kanten hinzufügen
+    # Fenster als Knoten und Kanten hinzufügen
     process_doors_and_windows(G, ifc_file, csv_windows, "IfcWindow", 'purple', "ContainedIn")
 
-    # # Wände verarbeiten und als Knoten hinzufügen
+    # Wände verarbeiten und als Knoten hinzufügen
     process_walls(G, ifc_file, storey_name)
 
-    # # Wände und Räume verbinden
+    # Wände und Räume verbinden
     process_walls_and_rooms(G, csv_walls, ifc_file.by_type("IfcWall"), "ContainedIn")
 
-    # # Wand-Adjazenz verarbeiten
+    # Wand-Adjazenz verarbeiten
     process_wall_adjacency(G, csv_wall_adjacency, ifc_file.by_type("IfcWall"))
 
-    # # Elemente in Wände einfügen
-    process_walls_and_rooms(G, csv_host_elements, ifc_file.by_type("IfcWall"), "HostedBy")
+    # Elemente (Fenster/Türen) mit ihren Hostwänden verbinden
+    process_element_hosts(G, ifc_file, csv_host_elements, ifc_file.by_type("IfcWall"))
 
     # Pyvis Network erstellen und visualisieren
     net = Network(notebook=False, height="1200px", width="1600px", select_menu=True, filter_menu=True)
