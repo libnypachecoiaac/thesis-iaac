@@ -1,6 +1,7 @@
 import ifcopenshell
 import pickle
 import networkx as nx
+import re
 
 # Funktion zum Laden der IFC-Datei
 def load_ifc_file(file_path):
@@ -11,52 +12,72 @@ def load_graph(pickle_file_path):
     with open(pickle_file_path, 'rb') as f:
         return pickle.load(f)
 
-# Funktion zum Auslesen spezifischer Attribute eines IFC-Elements
-def get_ifc_element_attributes(ifc_element, attributes):
-    attr_data = {}
-    for attr in attributes:
-        if hasattr(ifc_element, attr):
-            attr_data[attr] = getattr(ifc_element, attr)
-        else:
-            attr_data[attr] = None  # Falls das Attribut nicht existiert, None zuweisen
-    return attr_data
+# Funktion zum Dekodieren von Unicode-Sonderzeichen in IFC-TEXT
+def decode_ifc_text(text):
+    # Suche nach allen \X\HHHH Kodierungen im Text
+    matches = re.findall(r'\\X\\([0-9A-Fa-f]{4})', text)
+    for match in matches:
+        # Ersetze die Kodierung durch das entsprechende Unicode-Zeichen
+        text = text.replace(r'\X\{}'.format(match), chr(int(match, 16)))
+    return text
 
-# Hauptfunktion zum Anreichern des Graphen mit zusätzlichen Attributen
-def enrich_graph_with_ifc_data(graph, ifc_file, attributes):
-    # Durchlaufe alle Knoten im Graphen
+# Funktion zum Extrahieren von Property-Werten aus IFC-Dateien
+def extract_property_value(ifc_element, property_name, value_type):
+    for rel in ifc_element.IsDefinedBy:
+        if rel.is_a("IfcRelDefinesByProperties"):
+            props = rel.RelatingPropertyDefinition
+            if props.is_a("IfcPropertySet"):
+                for prop in props.HasProperties:
+                    if prop.Name == property_name:
+                        if value_type == 'text' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return decode_ifc_text(prop.NominalValue.wrappedValue)
+                        elif value_type == 'number' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return round(prop.NominalValue.wrappedValue)
+                        elif value_type == 'area' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return round(prop.NominalValue.wrappedValue, 3)
+    return None
+
+# Hauptfunktion zum Anreichern des Graphen mit IfcWindow-Daten
+def enrich_graph_with_ifcwindow_data(graph, ifc_file):
     for node in graph.nodes(data=True):
-        global_id = node[1].get('GlobalId')
-        
-        if global_id:
-            # Suche das IFC-Element mit dem entsprechenden GlobalId
-            ifc_element = ifc_file.by_guid(global_id)
+        # Prüfe, ob der Node ein IfcWindow ist
+        if node[0].startswith("Window_"):
+            # Setze das Object-Attribut
+            graph.nodes[node[0]]['Object'] = 'Window'
             
-            if ifc_element:
-                # Extrahiere die gewünschten Attribute
-                element_attributes = get_ifc_element_attributes(ifc_element, attributes)
+            # Hole das GlobalId-Attribut
+            global_id = node[1].get('GlobalId')
+            
+            if global_id:
+                # Suche das IfcWindow-Element in der IFC-Datei
+                ifc_window = ifc_file.by_guid(global_id)
                 
-                # Füge die Attribute zum Knoten hinzu
-                for attr_name, attr_value in element_attributes.items():
-                    graph.nodes[node[0]][attr_name] = attr_value
+                if ifc_window:
+                    # Extrahiere die benötigten Eigenschaften
+                    graph.nodes[node[0]]['Construction Type'] = extract_property_value(ifc_window, 'Construction Type', 'text')
+                    graph.nodes[node[0]]['Sill Height'] = extract_property_value(ifc_window, 'Sill Height', 'number')
+                    graph.nodes[node[0]]['Height'] = extract_property_value(ifc_window, 'Height', 'number')
+                    graph.nodes[node[0]]['Width'] = extract_property_value(ifc_window, 'Width', 'number')
+                    graph.nodes[node[0]]['Area'] = extract_property_value(ifc_window, 'Area', 'area')
+                    graph.nodes[node[0]]['Material Interior'] = extract_property_value(ifc_window, 'Material Interior', 'text')
+                    graph.nodes[node[0]]['Material Exterior'] = extract_property_value(ifc_window, 'Material Exterior', 'text')
+                    graph.nodes[node[0]]['Type'] = extract_property_value(ifc_window, 'Family and Type', 'text')
 
 # Skript ausführen
 if __name__ == "__main__":
     # Pfade zu den Dateien
-    pickle_file_path = "network_graph.pkl"
+    pickle_file_path = "enriched_network_graph.pkl"
     ifc_file_path = "Hus28_test.ifc"
-
-    # Zu extrahierende Attribute (Beispiel: Name, ObjectType, Description)
-    attributes_to_extract = ['Name', 'ObjectType', 'Description']
 
     # IFC-Datei und Graph laden
     ifc_file = load_ifc_file(ifc_file_path)
     G = load_graph(pickle_file_path)
 
-    # Graphen mit IFC-Daten anreichern
-    enrich_graph_with_ifc_data(G, ifc_file, attributes_to_extract)
+    # Graphen mit IfcWindow-Daten anreichern
+    enrich_graph_with_ifcwindow_data(G, ifc_file)
 
-    # Option: Den angereicherten Graphen wieder speichern
-    with open('enriched_network_graph.pkl', 'wb') as f:
+    # Optional: Den angereicherten Graphen wieder speichern
+    with open('enriched_network_graph_with_windows.pkl', 'wb') as f:
         pickle.dump(G, f)
 
-    print("Graph wurde erfolgreich mit zusätzlichen Attributen angereichert.")
+    print("Graph wurde erfolgreich mit IfcWindow-Attributen angereichert.")
