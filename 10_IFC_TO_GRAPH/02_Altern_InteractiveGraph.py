@@ -3,13 +3,11 @@ import re
 import networkx as nx
 import csv
 import os
-from pyvis.network import Network
+import yaml
+import pickle
 
-# Funktion zum Laden der IFC-Datei
-def load_ifc_file(file_path):
-    return ifcopenshell.open(file_path)
 
-# Funktion zum Filtern von IfcSpaces nach Geschossname
+# Function to filter IfcSpaces by storey name
 def filter_ifcspaces_by_storey(spaces, storey_name):
     filtered_spaces = []
     for space in spaces:
@@ -20,7 +18,7 @@ def filter_ifcspaces_by_storey(spaces, storey_name):
                     break
     return filtered_spaces
 
-# Funktion zum Filtern von IfcSpaces nach Namen mit Ziffern (1-5 Ziffern)
+# Function to filter IfcSpaces by name with digits (1-5 digits)
 def filter_spaces_by_name(spaces):
     digit_pattern = re.compile(r'^\d{1,5}$')
     filtered_spaces = []
@@ -29,7 +27,7 @@ def filter_spaces_by_name(spaces):
             filtered_spaces.append(space)
     return filtered_spaces
 
-# Funktion zur Verarbeitung der "Direct" Verbindungen aus Output01_RoomToRoom_BySeparationLine.csv
+# Function to process "Direct" connections from Output01_RoomToRoom_BySeparationLine.csv
 def process_direct_connections(G, csv_file):
     edges = []
     with open(csv_file, 'r') as file:
@@ -39,7 +37,7 @@ def process_direct_connections(G, csv_file):
             if len(parts) > 1:
                 connected_rooms_global_ids = parts[1].split(',')
                 for neighbor_global_id in connected_rooms_global_ids:
-                    # Filtere Selbstreferenzen
+                    # Filter self-references
                     if main_room_global_id != neighbor_global_id:
                         edges.append((main_room_global_id, neighbor_global_id))
     
@@ -54,7 +52,7 @@ def process_direct_connections(G, csv_file):
         if room1 and room2:
             G.add_edge(room1, room2, Access="Direct")
 
-# Funktion zur Verarbeitung der "Door" und "Window" Verbindungen aus den jeweiligen CSVs
+# Function to process "Door" and "Window" connections from respective CSVs
 def process_element_connections(G, csv_file, access_type):
     element_edges = []
     with open(csv_file, 'r') as file:
@@ -65,7 +63,7 @@ def process_element_connections(G, csv_file, access_type):
                 connected_rooms_global_ids = parts[1].split(',')
                 for i in range(len(connected_rooms_global_ids) - 1):
                     for j in range(i + 1, len(connected_rooms_global_ids)):
-                        # Filtere Selbstreferenzen
+                        # Filter self-references
                         if connected_rooms_global_ids[i] != connected_rooms_global_ids[j]:
                             element_edges.append((connected_rooms_global_ids[i], connected_rooms_global_ids[j]))
 
@@ -80,7 +78,7 @@ def process_element_connections(G, csv_file, access_type):
         if room1 and room2:
             G.add_edge(room1, room2, Access=access_type)
 
-# Funktion zum Hinzufügen von Türen und Fenstern als Knoten und Kanten
+# Function to add doors and windows as nodes and edges
 def process_doors_and_windows(G, ifc_file, csv_file, element_type, color, category):
     edges = []
     elements = set()
@@ -112,7 +110,7 @@ def process_doors_and_windows(G, ifc_file, csv_file, element_type, color, catego
         if room:
             G.add_edge(element, room, Category=category)
 
-# Funktion zum Verarbeiten der CSV-Datei für Hosts (Fenster/Türen) und Wände
+# Function to process the CSV file for Hosts (Windows/Doors) and Walls
 def process_element_hosts(G, ifc_file, csv_file, all_walls):
     def get_element_oid_by_guid(elements, guid):
         for element in elements:
@@ -123,16 +121,16 @@ def process_element_hosts(G, ifc_file, csv_file, all_walls):
     with open(csv_file, 'r') as file:
         reader = csv.reader(file, delimiter=';')
         for row in reader:
-            element_type = row[0]  # z.B. "IfcDoor" oder "IfcWindow"
-            element_guid = row[1]  # GlobalId des Fensters oder der Tür
-            wall_guid = row[2]     # GlobalId der Wand, in der das Element eingebaut ist
+            element_type = row[0]  # e.g., "IfcDoor" or "IfcWindow"
+            element_guid = row[1]  # GlobalId of the window or door
+            wall_guid = row[2]     # GlobalId of the wall in which the element is hosted
 
-            # OID des Elements abrufen
+            # Get the OID of the element
             element_oid = get_element_oid_by_guid(ifc_file.by_type(element_type), element_guid)
             if element_oid is not None:
                 element_node = f"{element_type.split('Ifc')[-1]}_{element_oid}"
                 
-                # OID der Wand abrufen
+                # Get the OID of the wall
                 wall_oid = get_element_oid_by_guid(all_walls, wall_guid)
                 if wall_oid is not None:
                     wall_node = f"Wall_{wall_oid}"
@@ -140,7 +138,7 @@ def process_element_hosts(G, ifc_file, csv_file, all_walls):
                     if element_node in G and wall_node in G:
                         G.add_edge(element_node, wall_node, Category="HostedBy")
 
-# Funktion zum Filtern von IfcWalls nach Geschossname und Hinzufügen als Knoten
+# Function to filter IfcWalls by storey name and add them as nodes
 def process_walls(G, ifc_file, storey_name):
     def get_storey(element):
         for rel in element.ContainedInStructure:
@@ -159,7 +157,7 @@ def process_walls(G, ifc_file, storey_name):
         node_label = f"Wall_{wall_oid}"
         G.add_node(node_label, color='grey', GlobalId=wall_global_id, OID=wall_oid)
 
-# Funktion zum Verarbeiten der CSV-Dateien für Wände und Räume
+# Function to process the CSV files for walls and rooms
 def process_walls_and_rooms(G, csv_file, all_walls, relation):
     def get_wall_oid_by_guid(walls, guid):
         for wall in walls:
@@ -185,7 +183,7 @@ def process_walls_and_rooms(G, csv_file, all_walls, relation):
                         if wall_node in G:
                             G.add_edge(space_node, wall_node, Category=relation)
 
-# Funktion zum Verarbeiten der CSV-Datei für benachbarte Wände
+# Function to process the CSV file for adjacent walls
 def process_wall_adjacency(G, csv_file, all_walls):
     def get_wall_oid_by_guid(walls, guid):
         for wall in walls:
@@ -208,10 +206,9 @@ def process_wall_adjacency(G, csv_file, all_walls):
                         if primary_wall_node in G and connected_wall_node in G:
                             G.add_edge(primary_wall_node, connected_wall_node, Category="IsConnected")
 
-# Hauptfunktion zum Erstellen des Graphen
+# MAIN
 def main():
-    # Pfade zu den Dateien
-    ifc_file_path = "Hus28_test.ifc"
+    # Paths
     csv_room_to_room = "Output01_RoomToRoom_BySeparationLine.csv"
     csv_doors = "Output02_RoomToRoom_ByDoors.csv"
     csv_windows = "Output03_RoomToRoom_ByWindows.csv"
@@ -219,79 +216,63 @@ def main():
     csv_wall_adjacency = "Output06_Wall_Adjacancy.csv"
     csv_host_elements = "Output05_Hosts_of_WindowsAndDoors.csv"
 
-    # IFC-Datei laden
-    ifc_file = load_ifc_file(ifc_file_path)
+    # Load config.yaml
+    with open("config.yaml", "r") as f:
+        config = yaml.safe_load(f)
 
-    # Geschossname definieren
-    storey_name = "Plan 10"
+        ifc_file_path = config["ifc_file"]
+        storey_name = config["storey_name"]
 
-    # Graph erstellen
+    # Open IFC file
+    ifc_file = ifcopenshell.open(ifc_file_path)
+    print("IFC file opened successfully.")
+
+    # Create Graph
     G = nx.Graph()
 
-    # IfcSpaces laden und filtern
+    # Load and filter Rooms
     all_spaces = ifc_file.by_type("IfcSpace")
     spaces = filter_ifcspaces_by_storey(all_spaces, storey_name)
     spaces = filter_spaces_by_name(spaces)
 
-    # Räume als Knoten hinzufügen
+    # Add Spaces as Nodes
     for space in spaces:
         node_label = f"Room_{space.Name}"
         global_id = space.GlobalId
         G.add_node(node_label, color='yellow', GlobalId=global_id)
 
-    # Raumverbindungen für "Direct" (Wandverbindungen)
+    # Room-Room Connection "Direct"
     process_direct_connections(G, csv_room_to_room)
 
-    # Raumverbindungen für "Door" (Türverbindungen)
+    # Room-Room Connection "Door"
     process_element_connections(G, csv_doors, "Door")
 
-    # Raumverbindungen für "Window" (Fensterverbindungen)
+    # Room-Room Connection "Window"
     process_element_connections(G, csv_windows, "Window")
 
-    # Türen als Knoten und Kanten hinzufügen
+    # Add Doors as Nodes
     process_doors_and_windows(G, ifc_file, csv_doors, "IfcDoor", 'blue', "ContainedIn")
 
-    # Fenster als Knoten und Kanten hinzufügen
+    # Add Windows as Nodes
     process_doors_and_windows(G, ifc_file, csv_windows, "IfcWindow", 'purple', "ContainedIn")
 
-    # Wände verarbeiten und als Knoten hinzufügen
+    # Add Walls as Nodes
     process_walls(G, ifc_file, storey_name)
 
-    # Wände und Räume verbinden
+    # Connect Rooms and Walls
     process_walls_and_rooms(G, csv_walls, ifc_file.by_type("IfcWall"), "ContainedIn")
 
-    # Wand-Adjazenz verarbeiten
+    # Connect Walls to Walls
     process_wall_adjacency(G, csv_wall_adjacency, ifc_file.by_type("IfcWall"))
 
-    # Elemente (Fenster/Türen) mit ihren Hostwänden verbinden
+    # Connect Windows and Doors with Host
     process_element_hosts(G, ifc_file, csv_host_elements, ifc_file.by_type("IfcWall"))
 
-    # Pyvis Network erstellen und visualisieren
-    net = Network(notebook=False, height="1200px", width="1600px", select_menu=True, filter_menu=True)
-    net.from_nx(G)
+    # Save the graph using pickle
+    with open("network_graph.pkl", "wb") as f:
+        pickle.dump(G, f)
 
-    # Farben der Knoten setzen
-    for node in net.nodes:
-        node['color'] = G.nodes[node['id']]['color']
-        node['title'] = f"GlobalId: {G.nodes[node['id']]['GlobalId']}"
+    print("Graph saved successfully.")
 
-    # Farben der Kanten setzen und zusätzliche Informationen hinzufügen
-    for edge in net.edges:
-        edge_data = G.edges[(edge['from'], edge['to'])]
-        edge['color'] = ('blue' if edge_data.get('Access') == 'Direct' else
-                         'green' if edge_data.get('Access') == 'Door' else
-                         'red' if edge_data.get('Access') == 'Window' else
-                         'grey' if edge_data.get('Category') == 'ContainedIn' else
-                         'red' if edge_data.get('Category') == 'IsConnected' else
-                         'green' if edge_data.get('Category') == 'HostedBy' else
-                         'black')
-        edge['title'] = f"Category: {edge_data.get('Category', 'N/A')}<br>Access: {edge_data.get('Access', 'N/A')}"
-
-    # HTML-Datei erstellen und anzeigen
-    net.write_html("interactive_graph.html")
-
-    print("END")
-
-# Skript ausführen
 if __name__ == "__main__":
     main()
