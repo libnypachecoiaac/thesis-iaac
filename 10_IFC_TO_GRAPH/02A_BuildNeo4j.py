@@ -50,7 +50,8 @@ def add_space_node(tx, global_id, oid, long_name, area, height, is_external, com
             n.Area = $area,
             n.Height = $height,
             n.IsExternal = $is_external,
-            n.Comments = $comments
+            n.Comments = $comments,
+            n.name = $long_name
         """,
         global_id=global_id,
         oid=oid,
@@ -116,7 +117,8 @@ def add_element_node(tx, element_label, global_id, oid, construction_type, heigh
                 n.SillHeight = $sill_height,
                 n.MaterialInterior = $material_interior,
                 n.MaterialExterior = $material_exterior,
-                n.Type = $type_name
+                n.Type = $type_name,
+                n.name = $type_name
             """,
             global_id=global_id,
             oid=oid,
@@ -139,7 +141,8 @@ def add_element_node(tx, element_label, global_id, oid, construction_type, heigh
                 n.Width = $width,
                 n.Area = $area,
                 n.ObjectType = $type_name,
-                n.External = $external
+                n.External = $external,
+                n.name = $type_name
             """,
             global_id=global_id,
             oid=oid,
@@ -190,21 +193,43 @@ def process_walls(driver, ifc_file, storey_name):
             wall_global_id = wall.GlobalId
             storey = next((rel.RelatingStructure for rel in wall.ContainedInStructure if rel.is_a("IfcRelContainedInSpatialStructure")), None)
             if storey and storey.Name == storey_name:
+                object_type = extract_property_value(wall, 'Family and Type', 'text')
+                load_bearing = extract_property_value(wall, 'LoadBearing', 'bool')
+                is_external = extract_property_value(wall, 'IsExternal', 'bool')
+                width = extract_property_value(wall, 'Width', 'number')
+                height = extract_property_value(wall, 'Height', 'number')
+                length = extract_property_value(wall, 'Length', 'number')
+                area = extract_property_value(wall, 'Gross Floor Area', 'area')
                 session.write_transaction(
-                    add_wall_node, wall_global_id, wall_oid, storey_name
+                    add_wall_node, wall_global_id, wall_oid, storey_name, object_type, load_bearing, is_external, width, height, length, area
                 )
 
-def add_wall_node(tx, global_id, oid, storey_name):
+def add_wall_node(tx, global_id, oid, storey_name, object_type, load_bearing, is_external, width, height, length, area):
     tx.run(
         """
         MERGE (n:Wall {GlobalId: $global_id})
         ON CREATE SET n.OID = $oid,
                       n.Storey = $storey_name,
-                      n.Object = 'Wall'
+                      n.Object = 'Wall',
+                      n.ObjectType = $object_type,
+                      n.LoadBearing = $load_bearing,
+                      n.IsExternal = $is_external,
+                      n.Width = $width,
+                      n.Height = $height,
+                      n.Length = $length,
+                      n.Area = $area,
+                      n.name = $object_type
         """,
         global_id=global_id,
         oid=oid,
-        storey_name=storey_name
+        storey_name=storey_name,
+        object_type=object_type,
+        load_bearing=load_bearing,
+        is_external=is_external,
+        width=width,
+        height=height,
+        length=length,
+        area=area
     )
 
 # Funktion, um Wände mit Räumen zu verbinden
