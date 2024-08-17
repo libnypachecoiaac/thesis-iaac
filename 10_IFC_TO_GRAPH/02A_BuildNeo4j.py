@@ -24,43 +24,61 @@ def filter_spaces_by_name(spaces):
             filtered_spaces.append(space)
     return filtered_spaces
 
-# Funktion, um IfcSpaces als Knoten in Neo4j anzulegen und mit zusätzlichen Daten anzureichern
+# Funktion, um IfcSpaces als Knoten in Neo4j anzulegen und mit den spezifischen Daten anzureichern
 def create_ifcspace_nodes(driver, spaces):
     with driver.session() as session:
         for space in spaces:
             # Zusätzliche Attribute aus der IFC-Datei extrahieren
             global_id = space.GlobalId
             long_name = decode_ifc_text(space.LongName) if space.LongName else 'N/A'
-            area = extract_property_value(space, 'Gross Floor Area', 'area')
-            height = extract_property_value(space, 'Height', 'number')
-            is_external = extract_property_value(space, 'IsExternal', 'bool')
-            comments = extract_property_value(space, 'Comments', 'text')
             
-            # Knoten erstellen und mit zusätzlichen Daten anreichern
+            # Mengenwerte aus der IFC-Datei extrahieren
+            height, gross_floor_area, gross_volume = extract_quantities(space)
+            
+            # Knoten erstellen und mit spezifischen Daten anreichern
             session.write_transaction(
-                add_space_node, global_id, space.id(), long_name, area, height, is_external, comments
+                add_space_node, global_id, space.id(), long_name, height, gross_floor_area, gross_volume
             )
 
-def add_space_node(tx, global_id, oid, long_name, area, height, is_external, comments):
+def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gross_volume):
     tx.run(
         """
         MERGE (n:Room {GlobalId: $global_id})
-        ON CREATE SET n.Object = 'Room', n.OID = $oid
-        SET n.LongName = $long_name,
-            n.Area = $area,
+        ON CREATE SET n.OID = $oid
+        SET n.Name = $long_name,
             n.Height = $height,
-            n.IsExternal = $is_external,
-            n.Comments = $comments,
-            n.name = $long_name
+            n.GrossFloorArea = $gross_floor_area,
+            n.GrossVolume = $gross_volume
         """,
         global_id=global_id,
         oid=oid,
         long_name=long_name,
-        area=area,
         height=height,
-        is_external=is_external,
-        comments=comments
+        gross_floor_area=gross_floor_area,
+        gross_volume=gross_volume
     )
+
+# Funktion, um Mengenwerte (Height, GrossFloorArea, GrossVolume) aus der IFC-Datei zu extrahieren
+def extract_quantities(element):
+    height = None
+    gross_floor_area = None
+    gross_volume = None
+
+    # Durchlaufe die Mengen der Elementdefinitionen
+    if element:
+        for definition in element.IsDefinedBy:
+            if hasattr(definition.RelatingPropertyDefinition, "Quantities"):
+                quantities = definition.RelatingPropertyDefinition.Quantities
+                
+                for quantity in quantities:
+                    if quantity.Name == "Height":
+                        height = quantity.LengthValue
+                    elif quantity.Name == "GrossFloorArea":
+                        gross_floor_area = quantity.AreaValue
+                    elif quantity.Name == "GrossVolume":
+                        gross_volume = quantity.VolumeValue
+    
+    return height, gross_floor_area, gross_volume
 
 # Funktion, um Türen und Fenster als Knoten in Neo4j anzulegen und mit den entsprechenden Räumen zu verbinden
 def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label):
@@ -193,13 +211,14 @@ def process_walls(driver, ifc_file, storey_name):
             wall_global_id = wall.GlobalId
             storey = next((rel.RelatingStructure for rel in wall.ContainedInStructure if rel.is_a("IfcRelContainedInSpatialStructure")), None)
             if storey and storey.Name == storey_name:
-                object_type = extract_property_value(wall, 'Family and Type', 'text')
+                object_type = extract_property_value(wall, 'Type', 'text')
                 load_bearing = extract_property_value(wall, 'LoadBearing', 'bool')
                 is_external = extract_property_value(wall, 'IsExternal', 'bool')
                 width = extract_property_value(wall, 'Width', 'number')
                 height = extract_property_value(wall, 'Height', 'number')
                 length = extract_property_value(wall, 'Length', 'number')
-                area = extract_property_value(wall, 'Gross Floor Area', 'area')
+                area = extract_property_value(wall, 'GrossVolume', 'area')
+
                 session.write_transaction(
                     add_wall_node, wall_global_id, wall_oid, storey_name, object_type, load_bearing, is_external, width, height, length, area
                 )
