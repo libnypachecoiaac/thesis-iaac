@@ -24,15 +24,12 @@ def filter_spaces_by_name(spaces):
             filtered_spaces.append(space)
     return filtered_spaces
 
-# Funktion, um IfcSpaces als Knoten in Neo4j anzulegen und mit den spezifischen Daten anzureichern
+# Funktion, um IfcSpaces als Knoten in Neo4j anzulegen und mit zusätzlichen Daten anzureichern
 def create_ifcspace_nodes(driver, spaces):
     with driver.session() as session:
         for space in spaces:
-            # Zusätzliche Attribute aus der IFC-Datei extrahieren
             global_id = space.GlobalId
             long_name = decode_ifc_text(space.LongName) if space.LongName else 'N/A'
-            
-            # Mengenwerte aus der IFC-Datei extrahieren
             height, gross_floor_area, gross_volume = extract_quantities(space)
             
             # Knoten erstellen und mit spezifischen Daten anreichern
@@ -44,7 +41,7 @@ def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gros
     tx.run(
         """
         MERGE (n:Room {GlobalId: $global_id})
-        ON CREATE SET n.OID = $oid
+        ON CREATE SET n.Object = 'Room', n.OID = $oid
         SET n.Name = $long_name,
             n.Height = $height,
             n.GrossFloorArea = $gross_floor_area,
@@ -57,28 +54,6 @@ def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gros
         gross_floor_area=gross_floor_area,
         gross_volume=gross_volume
     )
-
-# Funktion, um Mengenwerte (Height, GrossFloorArea, GrossVolume) aus der IFC-Datei zu extrahieren
-def extract_quantities(element):
-    height = None
-    gross_floor_area = None
-    gross_volume = None
-
-    # Durchlaufe die Mengen der Elementdefinitionen
-    if element:
-        for definition in element.IsDefinedBy:
-            if hasattr(definition.RelatingPropertyDefinition, "Quantities"):
-                quantities = definition.RelatingPropertyDefinition.Quantities
-                
-                for quantity in quantities:
-                    if quantity.Name == "Height":
-                        height = quantity.LengthValue
-                    elif quantity.Name == "GrossFloorArea":
-                        gross_floor_area = quantity.AreaValue
-                    elif quantity.Name == "GrossVolume":
-                        gross_volume = quantity.VolumeValue
-    
-    return height, gross_floor_area, gross_volume
 
 # Funktion, um Türen und Fenster als Knoten in Neo4j anzulegen und mit den entsprechenden Räumen zu verbinden
 def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label):
@@ -93,27 +68,15 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                 
                 if element:
                     element_oid = element.id()
-                    construction_type = extract_property_value(element, 'Construction Type', 'text')
+                    name = element.Name  # Greife den Namen direkt aus dem IFC-Element ab
                     height = extract_property_value(element, 'Height', 'number')
                     width = extract_property_value(element, 'Width', 'number')
                     area = extract_property_value(element, 'Area', 'area')
-                    if element_label == "Window":
-                        sill_height = extract_property_value(element, 'Sill Height', 'number')
-                        material_interior = extract_property_value(element, 'Material Interior', 'text')
-                        material_exterior = extract_property_value(element, 'Material Exterior', 'text')
-                        type_name = extract_property_value(element, 'Family and Type', 'text')
-                    else:
-                        external = extract_property_value(element, 'IsExternal', 'bool')
-                        object_type = extract_property_value(element, 'Family and Type', 'text')
-
+                    sill_height = extract_property_value(element, 'Sill Height', 'number') if element_label == "Window" else None
+                    is_external = extract_property_value(element, 'IsExternal', 'bool')
+                    
                     session.write_transaction(
-                        add_element_node, element_label, element_global_id, element_oid, 
-                        construction_type, height, width, area, 
-                        sill_height if element_label == "Window" else None,
-                        material_interior if element_label == "Window" else None,
-                        material_exterior if element_label == "Window" else None,
-                        type_name if element_label == "Window" else object_type,
-                        external if element_label == "Door" else None
+                        add_element_node, element_label, element_global_id, element_oid, name, height, width, area, sill_height, is_external
                     )
 
                     # Verbindungen zu den Räumen herstellen
@@ -122,62 +85,51 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                             add_edge, element_global_id, room_global_id, "ContainedIn"
                         )
 
-def add_element_node(tx, element_label, global_id, oid, construction_type, height, width, area, sill_height, material_interior, material_exterior, type_name, external):
+def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external):
     if element_label == "Window":
         tx.run(
             """
             MERGE (n:Window {GlobalId: $global_id})
-            ON CREATE SET n.Object = 'Window', n.OID = $oid
-            SET n.ConstructionType = $construction_type,
-                n.Height = $height,
-                n.Width = $width,
-                n.Area = $area,
-                n.SillHeight = $sill_height,
-                n.MaterialInterior = $material_interior,
-                n.MaterialExterior = $material_exterior,
-                n.Type = $type_name,
-                n.name = $type_name
+            ON CREATE SET n.OID = $oid,
+                          n.Name = $name,
+                          n.Height = $height,
+                          n.Width = $width,
+                          n.Area = $area,
+                          n.SillHeight = $sill_height,
+                          n.IsExternal = $is_external
             """,
             global_id=global_id,
             oid=oid,
-            construction_type=construction_type,
+            name=name,
             height=height,
             width=width,
             area=area,
             sill_height=sill_height,
-            material_interior=material_interior,
-            material_exterior=material_exterior,
-            type_name=type_name
+            is_external=is_external
         )
     elif element_label == "Door":
         tx.run(
             """
             MERGE (n:Door {GlobalId: $global_id})
-            ON CREATE SET n.Object = 'Door', n.OID = $oid
-            SET n.ConstructionType = $construction_type,
-                n.Height = $height,
-                n.Width = $width,
-                n.Area = $area,
-                n.ObjectType = $type_name,
-                n.External = $external,
-                n.name = $type_name
+            ON CREATE SET n.OID = $oid,
+                          n.Name = $name,
+                          n.Height = $height,
+                          n.Width = $width,
+                          n.Area = $area,
+                          n.IsExternal = $is_external
             """,
             global_id=global_id,
             oid=oid,
-            construction_type=construction_type,
+            name=name,
             height=height,
             width=width,
             area=area,
-            type_name=type_name,
-            external=external
+            is_external=is_external
         )
 
 # Funktion, um eine Verbindung zwischen zwei Knoten in Neo4j anzulegen (ohne Duplikate)
 def add_edge(tx, room1_global_id, room2_global_id, category):
-    # Sortiere die IDs, um eine konsistente Reihenfolge zu gewährleisten
     sorted_ids = sorted([room1_global_id, room2_global_id])
-
-    # Wähle das passende Label für die Beziehung
     label = "Access" if category in ["Direct", "Door", "Window"] else category
     access_type = category if category in ["Direct", "Door", "Window"] else None
 
@@ -211,44 +163,37 @@ def process_walls(driver, ifc_file, storey_name):
             wall_global_id = wall.GlobalId
             storey = next((rel.RelatingStructure for rel in wall.ContainedInStructure if rel.is_a("IfcRelContainedInSpatialStructure")), None)
             if storey and storey.Name == storey_name:
-                object_type = extract_property_value(wall, 'Type', 'text')
+                name = wall.Name  # Verwende den Namen des Wandtyps
                 load_bearing = extract_property_value(wall, 'LoadBearing', 'bool')
                 is_external = extract_property_value(wall, 'IsExternal', 'bool')
                 width = extract_property_value(wall, 'Width', 'number')
                 height = extract_property_value(wall, 'Height', 'number')
                 length = extract_property_value(wall, 'Length', 'number')
-                area = extract_property_value(wall, 'GrossVolume', 'area')
 
                 session.write_transaction(
-                    add_wall_node, wall_global_id, wall_oid, storey_name, object_type, load_bearing, is_external, width, height, length, area
+                    add_wall_node, wall_global_id, wall_oid, name, is_external, load_bearing, height, length, width
                 )
 
-def add_wall_node(tx, global_id, oid, storey_name, object_type, load_bearing, is_external, width, height, length, area):
+def add_wall_node(tx, global_id, oid, name, is_external, load_bearing, height, length, width):
     tx.run(
         """
         MERGE (n:Wall {GlobalId: $global_id})
         ON CREATE SET n.OID = $oid,
-                      n.Storey = $storey_name,
-                      n.Object = 'Wall',
-                      n.ObjectType = $object_type,
-                      n.LoadBearing = $load_bearing,
+                      n.Name = $name,
                       n.IsExternal = $is_external,
-                      n.Width = $width,
+                      n.LoadBearing = $load_bearing,
                       n.Height = $height,
                       n.Length = $length,
-                      n.Area = $area,
-                      n.name = $object_type
+                      n.Width = $width
         """,
         global_id=global_id,
         oid=oid,
-        storey_name=storey_name,
-        object_type=object_type,
-        load_bearing=load_bearing,
+        name=name,
         is_external=is_external,
-        width=width,
+        load_bearing=load_bearing,
         height=height,
         length=length,
-        area=area
+        width=width
     )
 
 # Funktion, um Wände mit Räumen zu verbinden
@@ -289,9 +234,9 @@ def process_element_hosts(driver, ifc_file, csv_file, all_walls):
         with open(csv_file, 'r') as file:
             reader = csv.reader(file, delimiter=';')
             for row in reader:
-                element_type = row[0]  # e.g., "IfcDoor" or "IfcWindow"
-                element_guid = row[1]  # GlobalId of the window or door
-                wall_guid = row[2]     # GlobalId of the wall in which the element is hosted
+                element_type = row[0]
+                element_guid = row[1]
+                wall_guid = row[2]
 
                 element_oid = next((e.id() for e in ifc_file.by_type(element_type) if e.GlobalId == element_guid), None)
                 wall_oid = next((wall.id() for wall in all_walls if wall.GlobalId == wall_guid), None)
@@ -324,6 +269,27 @@ def extract_property_value(ifc_element, property_name, value_type):
                         elif value_type == 'bool' and hasattr(prop.NominalValue, 'wrappedValue'):
                             return prop.NominalValue.wrappedValue
     return None
+
+# Funktion, um Mengenwerte (Height, GrossFloorArea, GrossVolume) aus IFC-Dateien zu extrahieren
+def extract_quantities(element):
+    height = None
+    gross_floor_area = None
+    gross_volume = None
+
+    if element:
+        for definition in element.IsDefinedBy:
+            if hasattr(definition.RelatingPropertyDefinition, "Quantities"):
+                quantities = definition.RelatingPropertyDefinition.Quantities
+
+                for quantity in quantities:
+                    if quantity.Name == "Height":
+                        height = quantity.LengthValue
+                    elif quantity.Name == "GrossFloorArea":
+                        gross_floor_area = quantity.AreaValue
+                    elif quantity.Name == "GrossVolume":
+                        gross_volume = quantity.VolumeValue
+
+    return height, gross_floor_area, gross_volume
 
 # Funktion, um direkte Verbindungen zwischen Räumen herzustellen
 def process_direct_connections(driver, csv_file):
