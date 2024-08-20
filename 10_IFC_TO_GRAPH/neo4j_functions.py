@@ -1,4 +1,6 @@
 from neo4j import GraphDatabase
+import csv
+import re
 
 def create_ifcspace_nodes(driver, spaces):
     with driver.session() as session:
@@ -33,7 +35,7 @@ def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gros
 def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label):
     with driver.session() as session:
         with open(csv_file, 'r') as file:
-            for line in file.strip().split(';'):
+            for line in file:
                 parts = line.strip().split(';')
                 element_global_id = parts[0]
                 connected_rooms_global_ids = parts[1].split(',') if len(parts) > 1 else []
@@ -57,6 +59,23 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                         session.write_transaction(
                             add_edge, element_global_id, room_global_id, "ContainedIn"
                         )
+
+def extract_property_value(ifc_element, property_name, value_type):
+    for rel in ifc_element.IsDefinedBy:
+        if rel.is_a("IfcRelDefinesByProperties"):
+            props = rel.RelatingPropertyDefinition
+            if props.is_a("IfcPropertySet"):
+                for prop in props.HasProperties:
+                    if prop.Name == property_name:
+                        if value_type == 'text' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return decode_ifc_text(prop.NominalValue.wrappedValue)
+                        elif value_type == 'number' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return round(prop.NominalValue.wrappedValue)
+                        elif value_type == 'area' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return round(prop.NominalValue.wrappedValue, 3)
+                        elif value_type == 'bool' and hasattr(prop.NominalValue, 'wrappedValue'):
+                            return prop.NominalValue.wrappedValue
+    return None
 
 def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external):
     if element_label == "Window":
