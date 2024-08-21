@@ -65,8 +65,8 @@ def main():
     create_ifcspace_nodes(driver, spaces, storey_name)
 
     # Türen und Fenster als Knoten hinzufügen und Verbindungen zu Räumen herstellen
-    process_doors_and_windows(driver, ifc_file, csv_doors, "IfcDoor", "Door")
-    process_doors_and_windows(driver, ifc_file, csv_windows, "IfcWindow", "Window")
+    process_doors_and_windows(driver, ifc_file, csv_doors, "IfcDoor", "Door", storey_name)
+    process_doors_and_windows(driver, ifc_file, csv_windows, "IfcWindow", "Window", storey_name)
 
     # Wände als Knoten hinzufügen
     process_walls(driver, ifc_file, storey_name)

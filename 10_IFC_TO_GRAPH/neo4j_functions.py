@@ -42,7 +42,7 @@ def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gros
         level=level
     )
 
-def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label):
+def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label, storey_name):
     with driver.session() as session:
         with open(csv_file, 'r') as file:
             for line in file:
@@ -54,21 +54,135 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                 
                 if element:
                     element_oid = element.id()
-                    name = element.Name
+                    name = str(element.Name) if element.Name else None
                     height = extract_property_value(element, 'Height', 'number')
                     width = extract_property_value(element, 'Width', 'number')
                     area = extract_property_value(element, 'Area', 'area')
                     sill_height = extract_property_value(element, 'Sill Height', 'number') if element_label == "Window" else None
                     is_external = extract_property_value(element, 'IsExternal', 'bool')
+                    level = str(storey_name)  # Default level from storey_name
+
+                    # Suche nach Level im Raum
+                    for rel in element.ContainedInStructure:
+                        if rel.is_a("IfcRelContainedInSpatialStructure") and rel.RelatingStructure.is_a("IfcBuildingStorey"):
+                            level = str(rel.RelatingStructure.Name)  # Ensure level is a string
+                            break
                     
+                    # Zusätzliche Eigenschaften aus IfcWindowType
+                    material_exterior = None
+                    material_interior = None
+                    light_1_operation = None
+                    light_2_operation = None
+                    light_3_operation = None
+                    panel_operation = None
+                    window_type = None
+
+                    # Durchsuche die zugeordneten Typen für weitere Eigenschaften
+                    for rel_def in ifc_file.by_type("IfcRelDefinesByType"):
+                        if element in rel_def.RelatedObjects:
+                            window_type_obj = rel_def.RelatingType
+
+                            for prop_set in window_type_obj.HasPropertySets:
+                                if prop_set.is_a("IfcPropertySet"):
+                                    for prop in prop_set.HasProperties:
+                                        if prop.is_a("IfcPropertySingleValue"):
+                                            value = getattr(prop.NominalValue, 'wrappedValue', None)
+                                            if prop.Name == "Material Exterior":
+                                                material_exterior = str(value) if value else None
+                                            elif prop.Name == "Material Interior":
+                                                material_interior = str(value) if value else None
+                                            elif prop.Name == "Light 1 Operation":
+                                                light_1_operation = str(value) if value else None
+                                            elif prop.Name == "Light 2 Operation":
+                                                light_2_operation = str(value) if value else None
+                                            elif prop.Name == "Light 3 Operation":
+                                                light_3_operation = str(value) if value else None
+                                            elif prop.Name == "Panel Operation":
+                                                panel_operation = str(value) if value else None
+                                            elif prop.Name == "Type":
+                                                window_type = str(value) if value else None
+
+                    # Überprüfung auf `Type` in anderen Assoziationen
+                    if not window_type:
+                        for rel_def in element.IsDefinedBy:
+                            if rel_def.is_a("IfcRelDefinesByProperties"):
+                                property_set = rel_def.RelatingPropertyDefinition
+                                if property_set.is_a("IfcPropertySet"):
+                                    for prop in property_set.HasProperties:
+                                        if prop.is_a("IfcPropertySingleValue") and prop.Name == "Type":
+                                            value = getattr(prop.NominalValue, 'wrappedValue', None)
+                                            window_type = str(value) if value else None
+                                            break
+
                     session.write_transaction(
-                        add_element_node, element_label, element_global_id, element_oid, name, height, width, area, sill_height, is_external
+                        add_element_node, element_label, element_global_id, element_oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, window_type
                     )
 
                     for room_global_id in connected_rooms_global_ids:
                         session.write_transaction(
                             add_edge, element_global_id, room_global_id, "ContainedIn"
                         )
+
+def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, element_type):
+    if element_label == "Window":
+        tx.run(
+            """
+            MERGE (n:Window {GlobalId: $global_id})
+            ON CREATE SET n.OID = $oid,
+                          n.Name = $name,
+                          n.Height = $height,
+                          n.Width = $width,
+                          n.Area = $area,
+                          n.SillHeight = $sill_height,
+                          n.IsExternal = $is_external,
+                          n.Level = $level,
+                          n.MaterialExterior = $material_exterior,
+                          n.MaterialInterior = $material_interior,
+                          n.Light1Operation = $light_1_operation,
+                          n.Light2Operation = $light_2_operation,
+                          n.Light3Operation = $light_3_operation,
+                          n.PanelOperation = $panel_operation,
+                          n.Type = $element_type
+            """,
+            global_id=global_id,
+            oid=str(oid),  # Ensure oid is string
+            name=name,
+            height=height,
+            width=width,
+            area=area,
+            sill_height=sill_height,
+            is_external=is_external,
+            level=level,
+            material_exterior=material_exterior,
+            material_interior=material_interior,
+            light_1_operation=light_1_operation,
+            light_2_operation=light_2_operation,
+            light_3_operation=light_3_operation,
+            panel_operation=panel_operation,
+            element_type=element_type
+        )
+    elif element_label == "Door":
+        tx.run(
+            """
+            MERGE (n:Door {GlobalId: $global_id})
+            ON CREATE SET n.OID = $oid,
+                          n.Name = $name,
+                          n.Height = $height,
+                          n.Width = $width,
+                          n.Area = $area,
+                          n.IsExternal = $is_external,
+                          n.Level = $level
+            """,
+            global_id=global_id,
+            oid=str(oid),  # Ensure oid is string
+            name=name,
+            height=height,
+            width=width,
+            area=area,
+            is_external=is_external,
+            level=level
+        )
+
 
 def extract_property_value(ifc_element, property_name, value_type):
     for rel in ifc_element.IsDefinedBy:
@@ -87,7 +201,7 @@ def extract_property_value(ifc_element, property_name, value_type):
                             return prop.NominalValue.wrappedValue
     return None
 
-def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external):
+def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, element_type):
     if element_label == "Window":
         tx.run(
             """
@@ -98,7 +212,15 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
                           n.Width = $width,
                           n.Area = $area,
                           n.SillHeight = $sill_height,
-                          n.IsExternal = $is_external
+                          n.IsExternal = $is_external,
+                          n.Level = $level,
+                          n.MaterialExterior = $material_exterior,
+                          n.MaterialInterior = $material_interior,
+                          n.Light1Operation = $light_1_operation,
+                          n.Light2Operation = $light_2_operation,
+                          n.Light3Operation = $light_3_operation,
+                          n.PanelOperation = $panel_operation,
+                          n.Type = $element_type
             """,
             global_id=global_id,
             oid=oid,
@@ -107,7 +229,15 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
             width=width,
             area=area,
             sill_height=sill_height,
-            is_external=is_external
+            is_external=is_external,
+            level=level,
+            material_exterior=material_exterior,
+            material_interior=material_interior,
+            light_1_operation=light_1_operation,
+            light_2_operation=light_2_operation,
+            light_3_operation=light_3_operation,
+            panel_operation=panel_operation,
+            element_type=element_type
         )
     elif element_label == "Door":
         tx.run(
@@ -118,7 +248,8 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
                           n.Height = $height,
                           n.Width = $width,
                           n.Area = $area,
-                          n.IsExternal = $is_external
+                          n.IsExternal = $is_external,
+                          n.Level = $level
             """,
             global_id=global_id,
             oid=oid,
@@ -126,7 +257,8 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
             height=height,
             width=width,
             area=area,
-            is_external=is_external
+            is_external=is_external,
+            level=level
         )
 
 def process_walls(driver, ifc_file, storey_name):
