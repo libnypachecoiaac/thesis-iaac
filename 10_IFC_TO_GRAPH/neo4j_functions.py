@@ -2,19 +2,25 @@ from neo4j import GraphDatabase
 import csv
 import re
 
-def create_ifcspace_nodes(driver, spaces):
+def create_ifcspace_nodes(driver, spaces, storey_name):
     with driver.session() as session:
         for space in spaces:
             global_id = space.GlobalId
             long_name = decode_ifc_text(space.LongName) if space.LongName else 'N/A'
-            height, gross_floor_area, gross_volume = extract_quantities(space)
+            height, gross_floor_area, gross_volume, net_floor_area = extract_quantities(space)
             
-            # Knoten erstellen und mit spezifischen Daten anreichern
+            # Level/Storey Name
+            level = storey_name
+            for rel in space.Decomposes:
+                if rel.is_a("IfcRelAggregates") and rel.RelatingObject.is_a("IfcBuildingStorey"):
+                    level = rel.RelatingObject.Name
+                    break
+            
             session.write_transaction(
-                add_space_node, global_id, space.id(), long_name, height, gross_floor_area, gross_volume
+                add_space_node, global_id, space.id(), long_name, height, gross_floor_area, gross_volume, net_floor_area, level
             )
 
-def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gross_volume):
+def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gross_volume, net_floor_area, level):
     tx.run(
         """
         MERGE (n:Room {GlobalId: $global_id})
@@ -22,14 +28,18 @@ def add_space_node(tx, global_id, oid, long_name, height, gross_floor_area, gros
         SET n.Name = $long_name,
             n.Height = $height,
             n.GrossFloorArea = $gross_floor_area,
-            n.GrossVolume = $gross_volume
+            n.NetFloorArea = $net_floor_area,
+            n.GrossVolume = $gross_volume,
+            n.Level = $level
         """,
         global_id=global_id,
         oid=oid,
         long_name=long_name,
         height=height,
         gross_floor_area=gross_floor_area,
-        gross_volume=gross_volume
+        net_floor_area=net_floor_area,
+        gross_volume=gross_volume,
+        level=level
     )
 
 def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_label):
@@ -275,6 +285,7 @@ def extract_quantities(element):
     height = None
     gross_floor_area = None
     gross_volume = None
+    net_floor_area = None
 
     if element:
         for definition in element.IsDefinedBy:
@@ -288,5 +299,7 @@ def extract_quantities(element):
                         gross_floor_area = quantity.AreaValue
                     elif quantity.Name == "GrossVolume":
                         gross_volume = quantity.VolumeValue
+                    elif quantity.Name == "NetFloorArea":
+                        net_floor_area = quantity.AreaValue
 
-    return height, gross_floor_area, gross_volume
+    return height, gross_floor_area, gross_volume, net_floor_area

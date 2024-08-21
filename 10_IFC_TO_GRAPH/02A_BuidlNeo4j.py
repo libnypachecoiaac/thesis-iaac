@@ -62,7 +62,7 @@ def main():
     driver = GraphDatabase.driver(uri, auth=("neo4j", "iaacthesis"))
 
     # Knoten in Neo4j erstellen und mit Daten anreichern
-    create_ifcspace_nodes(driver, spaces)
+    create_ifcspace_nodes(driver, spaces, storey_name)
 
     # Türen und Fenster als Knoten hinzufügen und Verbindungen zu Räumen herstellen
     process_doors_and_windows(driver, ifc_file, csv_doors, "IfcDoor", "Door")
