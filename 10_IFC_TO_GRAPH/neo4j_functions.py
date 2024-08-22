@@ -358,7 +358,7 @@ def process_direct_connections(driver, csv_file):
                     connected_rooms_global_ids = parts[1].split(',')
                     for neighbor_global_id in connected_rooms_global_ids:
                         if main_room_global_id != neighbor_global_id:
-                            room_pair = sorted([main_room_global_id, neighbor_global_id])  # Sortieren der IDs
+                            room_pair = sorted([main_room_global_id, neighbor_global_id])  # Sort IDs
                             session.write_transaction(
                                 add_edge, room_pair[0], room_pair[1], "Direct"
                             )
@@ -374,7 +374,7 @@ def process_element_connections(driver, csv_file, access_type):
                     for i in range(len(connected_rooms_global_ids) - 1):
                         for j in range(i + 1, len(connected_rooms_global_ids)):
                             if connected_rooms_global_ids[i] != connected_rooms_global_ids[j]:
-                                room_pair = sorted([connected_rooms_global_ids[i], connected_rooms_global_ids[j]])  # Sortieren der IDs
+                                room_pair = sorted([connected_rooms_global_ids[i], connected_rooms_global_ids[j]])  # Sort IDs
                                 session.write_transaction(
                                     add_edge, room_pair[0], room_pair[1], access_type
                                 )
