@@ -59,7 +59,6 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                     width = extract_property_value(element, 'Width', 'number')
                     area = extract_property_value(element, 'Area', 'area')
                     sill_height = extract_property_value(element, 'Sill Height', 'number') if element_label == "Window" else None
-                    is_external = extract_property_value(element, 'IsExternal', 'bool')
                     level = str(storey_name)  # Default level from storey_name
 
                     # Suche nach Level im Raum
@@ -68,54 +67,56 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                             level = str(rel.RelatingStructure.Name)  # Ensure level is a string
                             break
                     
-                    # Zusätzliche Eigenschaften aus IfcWindowType
-                    material_exterior = None
-                    material_interior = None
-                    light_1_operation = None
-                    light_2_operation = None
-                    light_3_operation = None
-                    panel_operation = None
-                    window_type = None
+                    # Zusätzliche Eigenschaften aus IfcWindowType oder IfcDoorType
+                    material_panel = None
+                    material_frame = None
+                    operation_type = None
+                    construction_type = None
+                    is_external = None
+                    type_mark = None
+                    element_type_value = None
 
                     # Durchsuche die zugeordneten Typen für weitere Eigenschaften
                     for rel_def in ifc_file.by_type("IfcRelDefinesByType"):
                         if element in rel_def.RelatedObjects:
-                            window_type_obj = rel_def.RelatingType
+                            element_type_obj = rel_def.RelatingType
 
-                            for prop_set in window_type_obj.HasPropertySets:
+                            for prop_set in element_type_obj.HasPropertySets:
                                 if prop_set.is_a("IfcPropertySet"):
                                     for prop in prop_set.HasProperties:
                                         if prop.is_a("IfcPropertySingleValue"):
                                             value = getattr(prop.NominalValue, 'wrappedValue', None)
-                                            if prop.Name == "Material Exterior":
-                                                material_exterior = str(value) if value else None
-                                            elif prop.Name == "Material Interior":
-                                                material_interior = str(value) if value else None
-                                            elif prop.Name == "Light 1 Operation":
-                                                light_1_operation = str(value) if value else None
-                                            elif prop.Name == "Light 2 Operation":
-                                                light_2_operation = str(value) if value else None
-                                            elif prop.Name == "Light 3 Operation":
-                                                light_3_operation = str(value) if value else None
-                                            elif prop.Name == "Panel Operation":
-                                                panel_operation = str(value) if value else None
+                                            if prop.Name == "Material Panel":
+                                                material_panel = str(value) if value else None
+                                            elif prop.Name == "Material Frame":
+                                                material_frame = str(value) if value else None
+                                            elif prop.Name == "OperationType":
+                                                operation_type = str(value) if value else None
+                                            elif prop.Name == "Construction Type":
+                                                construction_type = str(value) if value else None
+                                            elif prop.Name == "Function":
+                                                is_external = str(value).lower() == 'exterior' if value else None
+                                            elif prop.Name == "Type Mark":
+                                                type_mark = str(value) if value else None
                                             elif prop.Name == "Type":
-                                                window_type = str(value) if value else None
+                                                element_type_value = str(value) if value else None
 
-                    # Überprüfung auf `Type` in anderen Assoziationen
-                    if not window_type:
+                    # Überprüfung auf `Type` und andere Attribute in anderen Assoziationen
+                    if not element_type_value or not is_external:
                         for rel_def in element.IsDefinedBy:
                             if rel_def.is_a("IfcRelDefinesByProperties"):
                                 property_set = rel_def.RelatingPropertyDefinition
                                 if property_set.is_a("IfcPropertySet"):
                                     for prop in property_set.HasProperties:
-                                        if prop.is_a("IfcPropertySingleValue") and prop.Name == "Type":
+                                        if prop.is_a("IfcPropertySingleValue"):
                                             value = getattr(prop.NominalValue, 'wrappedValue', None)
-                                            window_type = str(value) if value else None
-                                            break
+                                            if prop.Name == "Function" and is_external is None:
+                                                is_external = str(value).lower() == 'exterior' if value else None
+                                            elif prop.Name == "Type" and not element_type_value:
+                                                element_type_value = str(value) if value else None
 
                     session.write_transaction(
-                        add_element_node, element_label, element_global_id, element_oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, window_type
+                        add_element_node, element_label, element_global_id, element_oid, name, height, width, area, sill_height, is_external, level, material_panel, material_frame, operation_type, construction_type, type_mark, element_type_value
                     )
 
                     for room_global_id in connected_rooms_global_ids:
@@ -123,7 +124,7 @@ def process_doors_and_windows(driver, ifc_file, csv_file, element_type, element_
                             add_edge, element_global_id, room_global_id, "ContainedIn"
                         )
 
-def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, element_type):
+def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external, level, material_panel, material_frame, operation_type, construction_type, type_mark, element_type_value):
     if element_label == "Window":
         tx.run(
             """
@@ -136,13 +137,12 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
                           n.SillHeight = $sill_height,
                           n.IsExternal = $is_external,
                           n.Level = $level,
-                          n.MaterialExterior = $material_exterior,
-                          n.MaterialInterior = $material_interior,
-                          n.Light1Operation = $light_1_operation,
-                          n.Light2Operation = $light_2_operation,
-                          n.Light3Operation = $light_3_operation,
-                          n.PanelOperation = $panel_operation,
-                          n.Type = $element_type
+                          n.MaterialPanel = $material_panel,
+                          n.MaterialFrame = $material_frame,
+                          n.OperationType = $operation_type,
+                          n.ConstructionType = $construction_type,
+                          n.TypeMark = $type_mark,
+                          n.Type = $element_type_value
             """,
             global_id=global_id,
             oid=str(oid),  # Ensure oid is string
@@ -153,13 +153,12 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
             sill_height=sill_height,
             is_external=is_external,
             level=level,
-            material_exterior=material_exterior,
-            material_interior=material_interior,
-            light_1_operation=light_1_operation,
-            light_2_operation=light_2_operation,
-            light_3_operation=light_3_operation,
-            panel_operation=panel_operation,
-            element_type=element_type
+            material_panel=material_panel,
+            material_frame=material_frame,
+            operation_type=operation_type,
+            construction_type=construction_type,
+            type_mark=type_mark,
+            element_type_value=element_type_value
         )
     elif element_label == "Door":
         tx.run(
@@ -171,7 +170,13 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
                           n.Width = $width,
                           n.Area = $area,
                           n.IsExternal = $is_external,
-                          n.Level = $level
+                          n.Level = $level,
+                          n.MaterialPanel = $material_panel,
+                          n.MaterialFrame = $material_frame,
+                          n.OperationType = $operation_type,
+                          n.ConstructionType = $construction_type,
+                          n.TypeMark = $type_mark,
+                          n.Type = $element_type_value
             """,
             global_id=global_id,
             oid=str(oid),  # Ensure oid is string
@@ -180,9 +185,14 @@ def add_element_node(tx, element_label, global_id, oid, name, height, width, are
             width=width,
             area=area,
             is_external=is_external,
-            level=level
+            level=level,
+            material_panel=material_panel,
+            material_frame=material_frame,
+            operation_type=operation_type,
+            construction_type=construction_type,
+            type_mark=type_mark,
+            element_type_value=element_type_value
         )
-
 
 def extract_property_value(ifc_element, property_name, value_type):
     for rel in ifc_element.IsDefinedBy:
@@ -200,66 +210,6 @@ def extract_property_value(ifc_element, property_name, value_type):
                         elif value_type == 'bool' and hasattr(prop.NominalValue, 'wrappedValue'):
                             return prop.NominalValue.wrappedValue
     return None
-
-def add_element_node(tx, element_label, global_id, oid, name, height, width, area, sill_height, is_external, level, material_exterior, material_interior, light_1_operation, light_2_operation, light_3_operation, panel_operation, element_type):
-    if element_label == "Window":
-        tx.run(
-            """
-            MERGE (n:Window {GlobalId: $global_id})
-            ON CREATE SET n.OID = $oid,
-                          n.Name = $name,
-                          n.Height = $height,
-                          n.Width = $width,
-                          n.Area = $area,
-                          n.SillHeight = $sill_height,
-                          n.IsExternal = $is_external,
-                          n.Level = $level,
-                          n.MaterialExterior = $material_exterior,
-                          n.MaterialInterior = $material_interior,
-                          n.Light1Operation = $light_1_operation,
-                          n.Light2Operation = $light_2_operation,
-                          n.Light3Operation = $light_3_operation,
-                          n.PanelOperation = $panel_operation,
-                          n.Type = $element_type
-            """,
-            global_id=global_id,
-            oid=oid,
-            name=name,
-            height=height,
-            width=width,
-            area=area,
-            sill_height=sill_height,
-            is_external=is_external,
-            level=level,
-            material_exterior=material_exterior,
-            material_interior=material_interior,
-            light_1_operation=light_1_operation,
-            light_2_operation=light_2_operation,
-            light_3_operation=light_3_operation,
-            panel_operation=panel_operation,
-            element_type=element_type
-        )
-    elif element_label == "Door":
-        tx.run(
-            """
-            MERGE (n:Door {GlobalId: $global_id})
-            ON CREATE SET n.OID = $oid,
-                          n.Name = $name,
-                          n.Height = $height,
-                          n.Width = $width,
-                          n.Area = $area,
-                          n.IsExternal = $is_external,
-                          n.Level = $level
-            """,
-            global_id=global_id,
-            oid=oid,
-            name=name,
-            height=height,
-            width=width,
-            area=area,
-            is_external=is_external,
-            level=level
-        )
 
 def process_walls(driver, ifc_file, storey_name):
     with driver.session() as session:
