@@ -1,0 +1,877 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+                <link href="lib/tom-select/tom-select.css" rel="stylesheet">
+                <script src="lib/tom-select/tom-select.complete.min.js"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 800px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 800px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="Room_19">Room_19</option>
+                                
+                                    <option value="Window_104474">Window_104474</option>
+                                
+                                    <option value="Window_56098">Window_56098</option>
+                                
+                                    <option value="Wall_49833">Wall_49833</option>
+                                
+                                    <option value="Wall_104316">Wall_104316</option>
+                                
+                                    <option value="Room_20">Room_20</option>
+                                
+                                    <option value="Window_50646">Window_50646</option>
+                                
+                                    <option value="Window_48339">Window_48339</option>
+                                
+                                    <option value="Window_48413">Window_48413</option>
+                                
+                                    <option value="Wall_50492">Wall_50492</option>
+                                
+                                    <option value="Room_21">Room_21</option>
+                                
+                                    <option value="Window_104459">Window_104459</option>
+                                
+                                    <option value="Window_56168">Window_56168</option>
+                                
+                                    <option value="Window_56204">Window_56204</option>
+                                
+                                    <option value="Wall_50380">Wall_50380</option>
+                                
+                                    <option value="Wall_104217">Wall_104217</option>
+                                
+                                    <option value="Room_27">Room_27</option>
+                                
+                                    <option value="Window_36921">Window_36921</option>
+                                
+                                    <option value="Window_100806">Window_100806</option>
+                                
+                                    <option value="Wall_49751">Wall_49751</option>
+                                
+                                    <option value="Wall_49639">Wall_49639</option>
+                                
+                                    <option value="Wall_100663">Wall_100663</option>
+                                
+                                    <option value="Room_28">Room_28</option>
+                                
+                                    <option value="Window_100821">Window_100821</option>
+                                
+                                    <option value="Window_35985">Window_35985</option>
+                                
+                                    <option value="Wall_49410">Wall_49410</option>
+                                
+                                    <option value="Wall_100449">Wall_100449</option>
+                                
+                                    <option value="Room_98">Room_98</option>
+                                
+                                    <option value="Door_162808">Door_162808</option>
+                                
+                                    <option value="Wall_186737">Wall_186737</option>
+                                
+                                    <option value="Wall_201620">Wall_201620</option>
+                                
+                                    <option value="Wall_187525">Wall_187525</option>
+                                
+                                    <option value="Wall_159274">Wall_159274</option>
+                                
+                                    <option value="Wall_186548">Wall_186548</option>
+                                
+                                    <option value="Wall_35646">Wall_35646</option>
+                                
+                                    <option value="Wall_186493">Wall_186493</option>
+                                
+                                    <option value="Room_745">Room_745</option>
+                                
+                                    <option value="Room_748">Room_748</option>
+                                
+                                    <option value="Wall_38725">Wall_38725</option>
+                                
+                                    <option value="Wall_79608">Wall_79608</option>
+                                
+                                    <option value="Wall_35742">Wall_35742</option>
+                                
+                                    <option value="Wall_187655">Wall_187655</option>
+                                
+                                    <option value="Room_746">Room_746</option>
+                                
+                                    <option value="Door_48200">Door_48200</option>
+                                
+                                    <option value="Door_37273">Door_37273</option>
+                                
+                                    <option value="Wall_39201">Wall_39201</option>
+                                
+                                    <option value="Wall_81672">Wall_81672</option>
+                                
+                                    <option value="Wall_186658">Wall_186658</option>
+                                
+                                    <option value="Wall_186792">Wall_186792</option>
+                                
+                                    <option value="Room_747">Room_747</option>
+                                
+                                    <option value="Wall_42464">Wall_42464</option>
+                                
+                                    <option value="Wall_82636">Wall_82636</option>
+                                
+                                    <option value="Wall_186603">Wall_186603</option>
+                                
+                                    <option value="Wall_186847">Wall_186847</option>
+                                
+                                    <option value="Wall_187362">Wall_187362</option>
+                                
+                                    <option value="Wall_201647">Wall_201647</option>
+                                
+                                    <option value="Wall_42355">Wall_42355</option>
+                                
+                                    <option value="Wall_81493">Wall_81493</option>
+                                
+                                    <option value="Wall_81751">Wall_81751</option>
+                                
+                                    <option value="Wall_156078">Wall_156078</option>
+                                
+                                    <option value="Wall_201702">Wall_201702</option>
+                                
+                                    <option value="Room_749">Room_749</option>
+                                
+                                    <option value="Door_104755">Door_104755</option>
+                                
+                                    <option value="Wall_37887">Wall_37887</option>
+                                
+                                    <option value="Wall_38569">Wall_38569</option>
+                                
+                                    <option value="Wall_38670">Wall_38670</option>
+                                
+                                    <option value="Room_750">Room_750</option>
+                                
+                                    <option value="Door_36670">Door_36670</option>
+                                
+                                    <option value="Door_102383">Door_102383</option>
+                                
+                                    <option value="Door_228712">Door_228712</option>
+                                
+                                    <option value="Door_37845">Door_37845</option>
+                                
+                                    <option value="Window_38383">Window_38383</option>
+                                
+                                    <option value="Window_38452">Window_38452</option>
+                                
+                                    <option value="Window_48643">Window_48643</option>
+                                
+                                    <option value="Wall_35804">Wall_35804</option>
+                                
+                                    <option value="Wall_36302">Wall_36302</option>
+                                
+                                    <option value="Wall_191019">Wall_191019</option>
+                                
+                                    <option value="Wall_201988">Wall_201988</option>
+                                
+                                    <option value="Wall_37423">Wall_37423</option>
+                                
+                                    <option value="Room_921">Room_921</option>
+                                
+                                    <option value="Door_68489">Door_68489</option>
+                                
+                                    <option value="Window_36120">Window_36120</option>
+                                
+                                    <option value="Window_56636">Window_56636</option>
+                                
+                                    <option value="Wall_49972">Wall_49972</option>
+                                
+                                    <option value="Wall_225551">Wall_225551</option>
+                                
+                                    <option value="Wall_69026">Wall_69026</option>
+                                
+                                    <option value="Wall_159745">Wall_159745</option>
+                                
+                                    <option value="Wall_159800">Wall_159800</option>
+                                
+                                    <option value="Wall_68903">Wall_68903</option>
+                                
+                                    <option value="Wall_98600">Wall_98600</option>
+                                
+                                    <option value="Wall_159928">Wall_159928</option>
+                                
+                                    <option value="Room_922">Room_922</option>
+                                
+                                    <option value="Door_68055">Door_68055</option>
+                                
+                                    <option value="Wall_65056">Wall_65056</option>
+                                
+                                    <option value="Wall_155950">Wall_155950</option>
+                                
+                                    <option value="Wall_65152">Wall_65152</option>
+                                
+                                    <option value="Wall_61635">Wall_61635</option>
+                                
+                                    <option value="Wall_160011">Wall_160011</option>
+                                
+                                    <option value="Room_923">Room_923</option>
+                                
+                                    <option value="Door_80056">Door_80056</option>
+                                
+                                    <option value="Window_56276">Window_56276</option>
+                                
+                                    <option value="Wall_61718">Wall_61718</option>
+                                
+                                    <option value="Wall_79681">Wall_79681</option>
+                                
+                                    <option value="Wall_98854">Wall_98854</option>
+                                
+                                    <option value="Room_924">Room_924</option>
+                                
+                                    <option value="Door_68826">Door_68826</option>
+                                
+                                    <option value="Wall_61791">Wall_61791</option>
+                                
+                                    <option value="Room_925">Room_925</option>
+                                
+                                    <option value="Room_926">Room_926</option>
+                                
+                                    <option value="Room_930">Room_930</option>
+                                
+                                    <option value="Window_56401">Window_56401</option>
+                                
+                                    <option value="Window_50098">Window_50098</option>
+                                
+                                    <option value="Window_56569">Window_56569</option>
+                                
+                                    <option value="Window_108033">Window_108033</option>
+                                
+                                    <option value="Wall_35284">Wall_35284</option>
+                                
+                                    <option value="Wall_64359">Wall_64359</option>
+                                
+                                    <option value="Wall_64414">Wall_64414</option>
+                                
+                                    <option value="Wall_64469">Wall_64469</option>
+                                
+                                    <option value="Wall_80131">Wall_80131</option>
+                                
+                                    <option value="Wall_155040">Wall_155040</option>
+                                
+                                    <option value="Wall_174154">Wall_174154</option>
+                                
+                                    <option value="Wall_63711">Wall_63711</option>
+                                
+                                    <option value="Room_927">Room_927</option>
+                                
+                                    <option value="Door_69561">Door_69561</option>
+                                
+                                    <option value="Window_50343">Window_50343</option>
+                                
+                                    <option value="Wall_61552">Wall_61552</option>
+                                
+                                    <option value="Wall_154985">Wall_154985</option>
+                                
+                                    <option value="Wall_155878">Wall_155878</option>
+                                
+                                    <option value="Wall_191140">Wall_191140</option>
+                                
+                                    <option value="Room_928">Room_928</option>
+                                
+                                    <option value="Wall_154930">Wall_154930</option>
+                                
+                                    <option value="Wall_67702">Wall_67702</option>
+                                
+                                    <option value="Room_929">Room_929</option>
+                                
+                                    <option value="Door_68413">Door_68413</option>
+                                
+                                    <option value="Wall_156014">Wall_156014</option>
+                                
+                                    <option value="Wall_96361">Wall_96361</option>
+                                
+                                    <option value="Wall_64524">Wall_64524</option>
+                                
+                                    <option value="Wall_175764">Wall_175764</option>
+                                
+                                    <option value="Room_1104">Room_1104</option>
+                                
+                                    <option value="Door_156480">Door_156480</option>
+                                
+                                    <option value="Window_162919">Window_162919</option>
+                                
+                                    <option value="Wall_35034">Wall_35034</option>
+                                
+                                    <option value="Wall_187746">Wall_187746</option>
+                                
+                                    <option value="Wall_225725">Wall_225725</option>
+                                
+                                    <option value="Wall_158635">Wall_158635</option>
+                                
+                                    <option value="Wall_158952">Wall_158952</option>
+                                
+                                    <option value="Wall_156133">Wall_156133</option>
+                                
+                                    <option value="Wall_174344">Wall_174344</option>
+                                
+                                    <option value="Room_1105">Room_1105</option>
+                                
+                                    <option value="Door_156890">Door_156890</option>
+                                
+                                    <option value="Wall_158489">Wall_158489</option>
+                                
+                                    <option value="Wall_159401">Wall_159401</option>
+                                
+                                    <option value="Wall_187273">Wall_187273</option>
+                                
+                                    <option value="Wall_156299">Wall_156299</option>
+                                
+                                    <option value="Wall_159346">Wall_159346</option>
+                                
+                                    <option value="Room_1106">Room_1106</option>
+                                
+                                    <option value="Door_156521">Door_156521</option>
+                                
+                                    <option value="Wall_157808">Wall_157808</option>
+                                
+                                    <option value="Wall_157872">Wall_157872</option>
+                                
+                                    <option value="Wall_225803">Wall_225803</option>
+                                
+                                    <option value="Wall_156216">Wall_156216</option>
+                                
+                                    <option value="Wall_158879">Wall_158879</option>
+                                
+                                    <option value="Room_1107">Room_1107</option>
+                                
+                                    <option value="Room_1108">Room_1108</option>
+                                
+                                    <option value="Room_1109">Room_1109</option>
+                                
+                                    <option value="Window_84263">Window_84263</option>
+                                
+                                    <option value="Wall_38163">Wall_38163</option>
+                                
+                                    <option value="Wall_38487">Wall_38487</option>
+                                
+                                    <option value="Wall_187127">Wall_187127</option>
+                                
+                                    <option value="Wall_157546">Wall_157546</option>
+                                
+                                    <option value="Wall_156563">Wall_156563</option>
+                                
+                                    <option value="Wall_158562">Wall_158562</option>
+                                
+                                    <option value="Room_1110">Room_1110</option>
+                                
+                                    <option value="Window_37351">Window_37351</option>
+                                
+                                    <option value="Window_162993">Window_162993</option>
+                                
+                                    <option value="Wall_225885">Wall_225885</option>
+                                
+                                    <option value="Wall_187201">Wall_187201</option>
+                                
+                                    <option value="Door_203323">Door_203323</option>
+                                
+                                    <option value="Wall_156408">Wall_156408</option>
+                                
+                                    <option value="Room_1114">Room_1114</option>
+                                
+                                    <option value="Wall_36757">Wall_36757</option>
+                                
+                                    <option value="Wall_35366">Wall_35366</option>
+                                
+                                    <option value="Wall_38235">Wall_38235</option>
+                                
+                                    <option value="Wall_36195">Wall_36195</option>
+                                
+                                    <option value="Wall_187027">Wall_187027</option>
+                                
+                                    <option value="Wall_203207">Wall_203207</option>
+                                
+                                    <option value="Wall_37978">Wall_37978</option>
+                                
+                                    <option value="Wall_100564">Wall_100564</option>
+                                
+                                    <option value="Wall_186944">Wall_186944</option>
+                                
+                                    <option value="Wall_225127">Wall_225127</option>
+                                
+                                    <option value="Wall_225347">Wall_225347</option>
+                                
+                                    <option value="Wall_225413">Wall_225413</option>
+                                
+                                    <option value="Wall_100376">Wall_100376</option>
+                                
+                                    <option value="Wall_49557">Wall_49557</option>
+                                
+                                    <option value="Wall_82781">Wall_82781</option>
+                                
+                                    <option value="Wall_79427">Wall_79427</option>
+                                
+                                    <option value="Wall_79535">Wall_79535</option>
+                                
+                                    <option value="Wall_98536">Wall_98536</option>
+                                
+                                    <option value="Wall_159873">Wall_159873</option>
+                                
+                                    <option value="Wall_159201">Wall_159201</option>
+                                
+                                    <option value="Wall_224819">Wall_224819</option>
+                                
+                                    <option value="Wall_225072">Wall_225072</option>
+                                
+                                    <option value="Wall_224907">Wall_224907</option>
+                                
+                                    <option value="Wall_224962">Wall_224962</option>
+                                
+                                    <option value="Wall_225017">Wall_225017</option>
+                                
+                                    <option value="Wall_225182">Wall_225182</option>
+                                
+                                    <option value="Wall_225237">Wall_225237</option>
+                                
+                                    <option value="Wall_225292">Wall_225292</option>
+                                
+                                    <option value="Wall_225496">Wall_225496</option>
+                                
+                                    <option value="Wall_187335">Wall_187335</option>
+                                
+                                    <option value="Wall_201764">Wall_201764</option>
+                                
+                                    <option value="Wall_203732">Wall_203732</option>
+                                
+                                    <option value="Wall_229098">Wall_229098</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"Area": null, "Comments": null, "GlobalId": "0uSXiavKjD892bcKOjMA$1", "Height": null, "IsExternal": false, "Long Name": "UTEPLATS", "Object": "Room", "color": "yellow", "id": "Room_19", "label": "Room_19", "shape": "dot", "size": 10, "title": "GlobalId: 0uSXiavKjD892bcKOjMA$1\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UTEPLATS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 1.722, "Construction Type": null, "GlobalId": "0MhF3zuEzBXwC_J$8wDFaJ", "Height": 2215, "Material Exterior": null, "Material Interior": null, "OID": 104474, "Object": "Window", "Sill Height": -15, "Type": "Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_104474", "label": "Window_104474", "shape": "dot", "size": 10, "title": "GlobalId: 0MhF3zuEzBXwC_J$8wDFaJ\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: -15\u003cbr\u003eHeight: 2215\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.722\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong"}, {"Area": 0.818, "Construction Type": null, "GlobalId": "1wOE2MwBf03f9R8GpskFCg", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56098, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F10-06 10x16 In\u00e5tg\u00e5ende", "Width": 1000, "color": "purple", "id": "Window_56098", "label": "Window_56098", "shape": "dot", "size": 10, "title": "GlobalId: 1wOE2MwBf03f9R8GpskFCg\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1000\u003cbr\u003eArea: 0.818\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F10-06 10x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nShB", "OID": 49833, "color": "grey", "id": "Wall_49833", "label": "Wall_49833", "shape": "dot", "size": 10}, {"GlobalId": "0MhF3zuEzBXwC_J$8wDFXT", "OID": 104316, "color": "grey", "id": "Wall_104316", "label": "Wall_104316", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0uSXiavKjD892bcKOjMA$4", "Height": null, "IsExternal": false, "Long Name": "UTEPLATS", "Object": "Room", "color": "yellow", "id": "Room_20", "label": "Room_20", "shape": "dot", "size": 10, "title": "GlobalId: 0uSXiavKjD892bcKOjMA$4\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UTEPLATS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 1.722, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSHV", "Height": 2215, "Material Exterior": null, "Material Interior": null, "OID": 50646, "Object": "Window", "Sill Height": -15, "Type": "Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_50646", "label": "Window_50646", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSHV\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: -15\u003cbr\u003eHeight: 2215\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.722\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong"}, {"Area": 1.208, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nScl", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 48339, "Object": "Window", "Sill Height": 600, "Type": "Double Window: F15-04 15x16 In\u00e5tg\u00e5ende", "Width": 1500, "color": "purple", "id": "Window_48339", "label": "Window_48339", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScl\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1500\u003cbr\u003eArea: 1.208\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Double Window: F15-04 15x16 In\u00e5tg\u00e5ende"}, {"Area": 1.307, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSck", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 48413, "Object": "Window", "Sill Height": 600, "Type": "Double Window: F18-04 18x16 In\u00e5tg\u00e5ende", "Width": 1800, "color": "purple", "id": "Window_48413", "label": "Window_48413", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSck\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1800\u003cbr\u003eArea: 1.307\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Double Window: F18-04 18x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSHQ", "OID": 50492, "color": "grey", "id": "Wall_50492", "label": "Wall_50492", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0uSXiavKjD892bcKOjMA$x", "Height": null, "IsExternal": false, "Long Name": "UTEPLATS", "Object": "Room", "color": "yellow", "id": "Room_21", "label": "Room_21", "shape": "dot", "size": 10, "title": "GlobalId: 0uSXiavKjD892bcKOjMA$x\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UTEPLATS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 1.722, "Construction Type": null, "GlobalId": "0MhF3zuEzBXwC_J$8wDFay", "Height": 2215, "Material Exterior": null, "Material Interior": null, "OID": 104459, "Object": "Window", "Sill Height": -15, "Type": "Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_104459", "label": "Window_104459", "shape": "dot", "size": 10, "title": "GlobalId: 0MhF3zuEzBXwC_J$8wDFay\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: -15\u003cbr\u003eHeight: 2215\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.722\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-05  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong"}, {"Area": 0.818, "Construction Type": null, "GlobalId": "1wOE2MwBf03f9R8GpskF2b", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56168, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F10-06 10x16 In\u00e5tg\u00e5ende", "Width": 1000, "color": "purple", "id": "Window_56168", "label": "Window_56168", "shape": "dot", "size": 10, "title": "GlobalId: 1wOE2MwBf03f9R8GpskF2b\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1000\u003cbr\u003eArea: 0.818\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F10-06 10x16 In\u00e5tg\u00e5ende"}, {"Area": 0.818, "Construction Type": null, "GlobalId": "1wOE2MwBf03f9R8GpskF2a", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56204, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F10-06 10x16 In\u00e5tg\u00e5ende", "Width": 1000, "color": "purple", "id": "Window_56204", "label": "Window_56204", "shape": "dot", "size": 10, "title": "GlobalId: 1wOE2MwBf03f9R8GpskF2a\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1000\u003cbr\u003eArea: 0.818\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F10-06 10x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSHR", "OID": 50380, "color": "grey", "id": "Wall_50380", "label": "Wall_50380", "shape": "dot", "size": 10}, {"GlobalId": "0MhF3zuEzBXwC_J$8wDFXU", "OID": 104217, "color": "grey", "id": "Wall_104217", "label": "Wall_104217", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0uSXiavKjD892bcKOjMA$f", "Height": null, "IsExternal": false, "Long Name": "UTEPLATS", "Object": "Room", "color": "yellow", "id": "Room_27", "label": "Room_27", "shape": "dot", "size": 10, "title": "GlobalId: 0uSXiavKjD892bcKOjMA$f\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UTEPLATS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 1.663, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdz", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 36921, "Object": "Window", "Sill Height": 600, "Type": "Triple Window: F22-01 22x16 In\u00e5tg\u00e5ende", "Width": 2200, "color": "purple", "id": "Window_36921", "label": "Window_36921", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdz\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 2200\u003cbr\u003eArea: 1.663\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Triple Window: F22-01 22x16 In\u00e5tg\u00e5ende"}, {"Area": 1.722, "Construction Type": null, "GlobalId": "0MhF3zuEzBXwC_J$8wDC_o", "Height": 2215, "Material Exterior": null, "Material Interior": null, "OID": 100806, "Object": "Window", "Sill Height": -15, "Type": "Single Patio Door: FD10-01  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_100806", "label": "Window_100806", "shape": "dot", "size": 10, "title": "GlobalId: 0MhF3zuEzBXwC_J$8wDC_o\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: -15\u003cbr\u003eHeight: 2215\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.722\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-01  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSeq", "OID": 49751, "color": "grey", "id": "Wall_49751", "label": "Wall_49751", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSer", "OID": 49639, "color": "grey", "id": "Wall_49639", "label": "Wall_49639", "shape": "dot", "size": 10}, {"GlobalId": "0MhF3zuEzBXwC_J$8wDDMj", "OID": 100663, "color": "grey", "id": "Wall_100663", "label": "Wall_100663", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0uSXiavKjD892bcKOjMA$i", "Height": null, "IsExternal": false, "Long Name": "UTEPLATS", "Object": "Room", "color": "yellow", "id": "Room_28", "label": "Room_28", "shape": "dot", "size": 10, "title": "GlobalId: 0uSXiavKjD892bcKOjMA$i\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UTEPLATS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 1.722, "Construction Type": null, "GlobalId": "0MhF3zuEzBXwC_J$8wDCy4", "Height": 2215, "Material Exterior": null, "Material Interior": null, "OID": 100821, "Object": "Window", "Sill Height": -15, "Type": "Single Patio Door: FD10-01  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_100821", "label": "Window_100821", "shape": "dot", "size": 10, "title": "GlobalId: 0MhF3zuEzBXwC_J$8wDCy4\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: -15\u003cbr\u003eHeight: 2215\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.722\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-01  F\u00f6nsterd\u00f6rr 1-luft Ut\u00e5tg\u00e5ende Balkong"}, {"Area": 1.208, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdd", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 35985, "Object": "Window", "Sill Height": 600, "Type": "Double Window: F15-01 15x16 In\u00e5tg\u00e5ende", "Width": 1500, "color": "purple", "id": "Window_35985", "label": "Window_35985", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdd\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1500\u003cbr\u003eArea: 1.208\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Double Window: F15-01 15x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSet", "OID": 49410, "color": "grey", "id": "Wall_49410", "label": "Wall_49410", "shape": "dot", "size": 10}, {"GlobalId": "0MhF3zuEzBXwC_J$8wDDII", "OID": 100449, "color": "grey", "id": "Wall_100449", "label": "Wall_100449", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "2Im_2tj0r41BcHdJK8Kcz3", "Height": null, "IsExternal": false, "Long Name": "UC", "Object": "Room", "color": "yellow", "id": "Room_98", "label": "Room_98", "shape": "dot", "size": 10, "title": "GlobalId: 2Im_2tj0r41BcHdJK8Kcz3\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: UC\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 3.037, "Construction Type": null, "External": false, "GlobalId": "3F20D9LUzBFPiJKN4mpzvV", "Height": 2110, "OID": 162808, "Object": "Door", "Object Type": "Single Door: SDI10-3", "Width": 1010, "color": "blue", "id": "Door_162808", "label": "Door_162808", "shape": "dot", "size": 10, "title": "GlobalId: 3F20D9LUzBFPiJKN4mpzvV\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 1010\u003cbr\u003eArea: 3.037\u003cbr\u003eObject Type: Single Door: SDI10-3\u003cbr\u003eExternal: False"}, {"GlobalId": "1WQPFqcij6iRfftGTAc$QO", "OID": 186737, "color": "grey", "id": "Wall_186737", "label": "Wall_186737", "shape": "dot", "size": 10}, {"GlobalId": "0pyqDFj1b8ou1XMGj0ffLi", "OID": 201620, "color": "grey", "id": "Wall_201620", "label": "Wall_201620", "shape": "dot", "size": 10}, {"GlobalId": "0JwH4ZBer9exdsW3Xs1_zO", "OID": 187525, "color": "grey", "id": "Wall_187525", "label": "Wall_187525", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4ti", "OID": 159274, "color": "grey", "id": "Wall_159274", "label": "Wall_159274", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$Gt", "OID": 186548, "color": "grey", "id": "Wall_186548", "label": "Wall_186548", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdZ", "OID": 35646, "color": "grey", "id": "Wall_35646", "label": "Wall_35646", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$H9", "OID": 186493, "color": "grey", "id": "Wall_186493", "label": "Wall_186493", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 1ROK 35 KVM", "GlobalId": "0aNC3YsFzEZf8uB9g1nSca", "Height": null, "IsExternal": false, "Long Name": "SOVALKOV", "Object": "Room", "color": "yellow", "id": "Room_745", "label": "Room_745", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSca\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVALKOV\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 1ROK 35 KVM"}, {"Area": null, "Comments": "LGH 1ROK 35 KVM", "GlobalId": "0aNC3YsFzEZf8uB9g1nScv", "Height": null, "IsExternal": false, "Long Name": "ALLRUM", "Object": "Room", "color": "yellow", "id": "Room_748", "label": "Room_748", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScv\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: ALLRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 1ROK 35 KVM"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScR", "OID": 38725, "color": "grey", "id": "Wall_38725", "label": "Wall_38725", "shape": "dot", "size": 10}, {"GlobalId": "3V4w8SHAjCyBUTFZ8uhZ2e", "OID": 79608, "color": "grey", "id": "Wall_79608", "label": "Wall_79608", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdY", "OID": 35742, "color": "grey", "id": "Wall_35742", "label": "Wall_35742", "shape": "dot", "size": 10}, {"GlobalId": "0JwH4ZBer9exdsW3Xs1_wG", "OID": 187655, "color": "grey", "id": "Wall_187655", "label": "Wall_187655", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 1ROK 35 KVM", "GlobalId": "0aNC3YsFzEZf8uB9g1nScx", "Height": null, "IsExternal": false, "Long Name": "HALL", "Object": "Room", "color": "yellow", "id": "Room_746", "label": "Room_746", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScx\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: HALL\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 1ROK 35 KVM"}, {"Area": 2.534, "Construction Type": null, "External": false, "GlobalId": "0aNC3YsFzEZf8uB9g1nSce", "Height": 2110, "OID": 48200, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-2", "Width": 910, "color": "blue", "id": "Door_48200", "label": "Door_48200", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSce\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.534\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-2\u003cbr\u003eExternal: False"}, {"Area": 2.765, "Construction Type": null, "External": false, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdy", "Height": 2110, "OID": 37273, "Object": "Door", "Object Type": "Single Door: SDI10-1", "Width": 1010, "color": "blue", "id": "Door_37273", "label": "Door_37273", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdy\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 1010\u003cbr\u003eArea: 2.765\u003cbr\u003eObject Type: Single Door: SDI10-1\u003cbr\u003eExternal: False"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScV", "OID": 39201, "color": "grey", "id": "Wall_39201", "label": "Wall_39201", "shape": "dot", "size": 10}, {"GlobalId": "3R2MGTuSfBAR6UB$SwSzdt", "OID": 81672, "color": "grey", "id": "Wall_81672", "label": "Wall_81672", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$Gn", "OID": 186658, "color": "grey", "id": "Wall_186658", "label": "Wall_186658", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$Ui", "OID": 186792, "color": "grey", "id": "Wall_186792", "label": "Wall_186792", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 1ROK 35 KVM", "GlobalId": "0aNC3YsFzEZf8uB9g1nScw", "Height": null, "IsExternal": false, "Long Name": "WC/D", "Object": "Room", "color": "yellow", "id": "Room_747", "label": "Room_747", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScw\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: WC/D\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 1ROK 35 KVM"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScI", "OID": 42464, "color": "grey", "id": "Wall_42464", "label": "Wall_42464", "shape": "dot", "size": 10}, {"GlobalId": "3eHzf38IP4NBm_82GTLjrw", "OID": 82636, "color": "grey", "id": "Wall_82636", "label": "Wall_82636", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$Gp", "OID": 186603, "color": "grey", "id": "Wall_186603", "label": "Wall_186603", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAc$2V", "OID": 186847, "color": "grey", "id": "Wall_186847", "label": "Wall_186847", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAczLp", "OID": 187362, "color": "grey", "id": "Wall_187362", "label": "Wall_187362", "shape": "dot", "size": 10}, {"GlobalId": "0pyqDFj1b8ou1XMGj0fk5w", "OID": 201647, "color": "grey", "id": "Wall_201647", "label": "Wall_201647", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScJ", "OID": 42355, "color": "grey", "id": "Wall_42355", "label": "Wall_42355", "shape": "dot", "size": 10}, {"GlobalId": "3jY3$PuNP3MgMUTrsNt4PV", "OID": 81493, "color": "grey", "id": "Wall_81493", "label": "Wall_81493", "shape": "dot", "size": 10}, {"GlobalId": "3R2MGTuSfBAR6UB$SwSzz0", "OID": 81751, "color": "grey", "id": "Wall_81751", "label": "Wall_81751", "shape": "dot", "size": 10}, {"GlobalId": "1Xdhl_99H1LxtFe91ySc9p", "OID": 156078, "color": "grey", "id": "Wall_156078", "label": "Wall_156078", "shape": "dot", "size": 10}, {"GlobalId": "0pyqDFj1b8ou1XMGj0fk5y", "OID": 201702, "color": "grey", "id": "Wall_201702", "label": "Wall_201702", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSfQ", "Height": null, "IsExternal": false, "Long Name": "El/VS", "Object": "Room", "color": "yellow", "id": "Room_749", "label": "Room_749", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSfQ\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: El/VS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 4.598, "Construction Type": null, "External": false, "GlobalId": "1$UkFGv$93m9yvMFzTqDGj", "Height": 2110, "OID": 104755, "Object": "Door", "Object Type": "Double Door: Elcentralfront 18", "Width": 1810, "color": "blue", "id": "Door_104755", "label": "Door_104755", "shape": "dot", "size": 10, "title": "GlobalId: 1$UkFGv$93m9yvMFzTqDGj\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 1810\u003cbr\u003eArea: 4.598\u003cbr\u003eObject Type: Double Door: Elcentralfront 18\u003cbr\u003eExternal: False"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdq", "OID": 37887, "color": "grey", "id": "Wall_37887", "label": "Wall_37887", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSc7", "OID": 38569, "color": "grey", "id": "Wall_38569", "label": "Wall_38569", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSc6", "OID": 38670, "color": "grey", "id": "Wall_38670", "label": "Wall_38670", "shape": "dot", "size": 10}, {"Area": null, "Comments": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSfO", "Height": null, "IsExternal": false, "Long Name": "TRAPPHUS", "Object": "Room", "color": "yellow", "id": "Room_750", "label": "Room_750", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSfO\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: TRAPPHUS\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: None"}, {"Area": 2.765, "Construction Type": null, "External": false, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdw", "Height": 2110, "OID": 36670, "Object": "Door", "Object Type": "Single Door: SDI10-1", "Width": 1010, "color": "blue", "id": "Door_36670", "label": "Door_36670", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdw\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 1010\u003cbr\u003eArea: 2.765\u003cbr\u003eObject Type: Single Door: SDI10-1\u003cbr\u003eExternal: False"}, {"Area": 3.373, "Construction Type": null, "External": false, "GlobalId": "0MhF3zuEzBXwC_J$8wDCXp", "Height": 2210, "OID": 102383, "Object": "Door", "Object Type": "Single Door Glazed SE med handtag: Glasad d\u00f6rr 11 x 22", "Width": 1110, "color": "blue", "id": "Door_102383", "label": "Door_102383", "shape": "dot", "size": 10, "title": "GlobalId: 0MhF3zuEzBXwC_J$8wDCXp\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2210\u003cbr\u003eWidth: 1110\u003cbr\u003eArea: 3.373\u003cbr\u003eObject Type: Single Door Glazed SE med handtag: Glasad d\u00f6rr 11 x 22\u003cbr\u003eExternal: False"}, {"Area": 3.373, "Construction Type": null, "External": false, "GlobalId": "0WAJJ9_TT2nOQ92Aug0Pcs", "Height": 2210, "OID": 228712, "Object": "Door", "Object Type": "Single Door Glazed SE med handtag: Glasad d\u00f6rr 11 x 22", "Width": 1110, "color": "blue", "id": "Door_228712", "label": "Door_228712", "shape": "dot", "size": 10, "title": "GlobalId: 0WAJJ9_TT2nOQ92Aug0Pcs\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2210\u003cbr\u003eWidth: 1110\u003cbr\u003eArea: 3.373\u003cbr\u003eObject Type: Single Door Glazed SE med handtag: Glasad d\u00f6rr 11 x 22\u003cbr\u003eExternal: False"}, {"Area": 2.765, "Construction Type": null, "External": false, "GlobalId": "0aNC3YsFzEZf8uB9g1nSds", "Height": 2110, "OID": 37845, "Object": "Door", "Object Type": "Single Door: SDI10-1", "Width": 1010, "color": "blue", "id": "Door_37845", "label": "Door_37845", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSds\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 1010\u003cbr\u003eArea: 2.765\u003cbr\u003eObject Type: Single Door: SDI10-1\u003cbr\u003eExternal: False"}, {"Area": 0.785, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nScC", "Height": 2000, "Material Exterior": null, "Material Interior": null, "OID": 38383, "Object": "Window", "Sill Height": 200, "Type": "Single Window: F5-04 5x20 Fast", "Width": 500, "color": "purple", "id": "Window_38383", "label": "Window_38383", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScC\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 200\u003cbr\u003eHeight: 2000\u003cbr\u003eWidth: 500\u003cbr\u003eArea: 0.785\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F5-04 5x20 Fast"}, {"Area": 0.785, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSc3", "Height": 2000, "Material Exterior": null, "Material Interior": null, "OID": 38452, "Object": "Window", "Sill Height": 200, "Type": "Single Window: F5-04 5x20 Fast", "Width": 500, "color": "purple", "id": "Window_38452", "label": "Window_38452", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSc3\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 200\u003cbr\u003eHeight: 2000\u003cbr\u003eWidth: 500\u003cbr\u003eArea: 0.785\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F5-04 5x20 Fast"}, {"Area": 0.785, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nScW", "Height": 2000, "Material Exterior": null, "Material Interior": null, "OID": 48643, "Object": "Window", "Sill Height": 200, "Type": "Single Window: F5-04 5x20 Fast", "Width": 500, "color": "purple", "id": "Window_48643", "label": "Window_48643", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nScW\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 200\u003cbr\u003eHeight: 2000\u003cbr\u003eWidth: 500\u003cbr\u003eArea: 0.785\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F5-04 5x20 Fast"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdW", "OID": 35804, "color": "grey", "id": "Wall_35804", "label": "Wall_35804", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdx", "OID": 36302, "color": "grey", "id": "Wall_36302", "label": "Wall_36302", "shape": "dot", "size": 10}, {"GlobalId": "2eAZvXReD5rxCsRcBVQwvx", "OID": 191019, "color": "grey", "id": "Wall_191019", "label": "Wall_191019", "shape": "dot", "size": 10}, {"GlobalId": "0MXhwXpTnD5winnseqQxo0", "OID": 201988, "color": "grey", "id": "Wall_201988", "label": "Wall_201988", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdt", "OID": 37423, "color": "grey", "id": "Wall_37423", "label": "Wall_37423", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1p6", "Height": null, "IsExternal": false, "Long Name": "SOVRUM", "Object": "Room", "color": "yellow", "id": "Room_921", "label": "Room_921", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1p6\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.655, "Construction Type": null, "External": false, "GlobalId": "3V7W2RscLEExyQLuCnt1oQ", "Height": 2110, "OID": 68489, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-1", "Width": 910, "color": "blue", "id": "Door_68489", "label": "Door_68489", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oQ\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.655\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-1\u003cbr\u003eExternal: False"}, {"Area": 1.307, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdc", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 36120, "Object": "Window", "Sill Height": 600, "Type": "Double Window: F18-04 18x16 In\u00e5tg\u00e5ende", "Width": 1800, "color": "purple", "id": "Window_36120", "label": "Window_36120", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdc\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1800\u003cbr\u003eArea: 1.307\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Double Window: F18-04 18x16 In\u00e5tg\u00e5ende"}, {"Area": 0.719, "Construction Type": null, "GlobalId": "2nefYOh757WxJJ69EVH2Qf", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56636, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende", "Width": 700, "color": "purple", "id": "Window_56636", "label": "Window_56636", "shape": "dot", "size": 10, "title": "GlobalId: 2nefYOh757WxJJ69EVH2Qf\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.719\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nShA", "OID": 49972, "color": "grey", "id": "Wall_49972", "label": "Wall_49972", "shape": "dot", "size": 10}, {"GlobalId": "1qLd$aRfnB58C7GyIrSsor", "OID": 225551, "color": "grey", "id": "Wall_225551", "label": "Wall_225551", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1oV", "OID": 69026, "color": "grey", "id": "Wall_69026", "label": "Wall_69026", "shape": "dot", "size": 10}, {"GlobalId": "3xDiDpx$nB2hLMfVxR_vR1", "OID": 159745, "color": "grey", "id": "Wall_159745", "label": "Wall_159745", "shape": "dot", "size": 10}, {"GlobalId": "3xDiDpx$nB2hLMfVxR_vR0", "OID": 159800, "color": "grey", "id": "Wall_159800", "label": "Wall_159800", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1oT", "OID": 68903, "color": "grey", "id": "Wall_68903", "label": "Wall_68903", "shape": "dot", "size": 10}, {"GlobalId": "0XqmV6lT93V9A_AtAupESC", "OID": 98600, "color": "grey", "id": "Wall_98600", "label": "Wall_98600", "shape": "dot", "size": 10}, {"GlobalId": "3xDiDpx$nB2hLMfVxR_vR2", "OID": 159928, "color": "grey", "id": "Wall_159928", "label": "Wall_159928", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1ow", "Height": null, "IsExternal": false, "Long Name": "SOVRUM", "Object": "Room", "color": "yellow", "id": "Room_922", "label": "Room_922", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1ow\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.655, "Construction Type": null, "External": false, "GlobalId": "3V7W2RscLEExyQLuCnt1oO", "Height": 2110, "OID": 68055, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-1", "Width": 910, "color": "blue", "id": "Door_68055", "label": "Door_68055", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oO\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.655\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-1\u003cbr\u003eExternal: False"}, {"GlobalId": "3V7W2RscLEExyQLuCnt1oi", "OID": 65056, "color": "grey", "id": "Wall_65056", "label": "Wall_65056", "shape": "dot", "size": 10}, {"GlobalId": "1Xdhl_99H1LxtFe91ySc9n", "OID": 155950, "color": "grey", "id": "Wall_155950", "label": "Wall_155950", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1oj", "OID": 65152, "color": "grey", "id": "Wall_65152", "label": "Wall_65152", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pO", "OID": 61635, "color": "grey", "id": "Wall_61635", "label": "Wall_61635", "shape": "dot", "size": 10}, {"GlobalId": "3xDiDpx$nB2hLMfVxR_vLB", "OID": 160011, "color": "grey", "id": "Wall_160011", "label": "Wall_160011", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1ox", "Height": null, "IsExternal": false, "Long Name": "KLK/FRD", "Object": "Room", "color": "yellow", "id": "Room_923", "label": "Room_923", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1ox\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: KLK/FRD\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.534, "Construction Type": null, "External": false, "GlobalId": "3V4w8SHAjCyBUTFZ8uhZEf", "Height": 2110, "OID": 80056, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9d-1", "Width": 910, "color": "blue", "id": "Door_80056", "label": "Door_80056", "shape": "dot", "size": 10, "title": "GlobalId: 3V4w8SHAjCyBUTFZ8uhZEf\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.534\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9d-1\u003cbr\u003eExternal: False"}, {"Area": 0.719, "Construction Type": null, "GlobalId": "1wOE2MwBf03f9R8GpskF6d", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56276, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende", "Width": 700, "color": "purple", "id": "Window_56276", "label": "Window_56276", "shape": "dot", "size": 10, "title": "GlobalId: 1wOE2MwBf03f9R8GpskF6d\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.719\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pP", "OID": 61718, "color": "grey", "id": "Wall_61718", "label": "Wall_61718", "shape": "dot", "size": 10}, {"GlobalId": "3V4w8SHAjCyBUTFZ8uhZAP", "OID": 79681, "color": "grey", "id": "Wall_79681", "label": "Wall_79681", "shape": "dot", "size": 10}, {"GlobalId": "3bmsvJtpP2Lw7375p3CrYk", "OID": 98854, "color": "grey", "id": "Wall_98854", "label": "Wall_98854", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1oy", "Height": null, "IsExternal": false, "Long Name": "WC/D", "Object": "Room", "color": "yellow", "id": "Room_924", "label": "Room_924", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oy\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: WC/D\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.443, "Construction Type": null, "External": false, "GlobalId": "3V7W2RscLEExyQLuCnt1oS", "Height": 2110, "OID": 68826, "Object": "Door", "Object Type": "Single Door: D8-1", "Width": 810, "color": "blue", "id": "Door_68826", "label": "Door_68826", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oS\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 810\u003cbr\u003eArea: 2.443\u003cbr\u003eObject Type: Single Door: D8-1\u003cbr\u003eExternal: False"}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pQ", "OID": 61791, "color": "grey", "id": "Wall_61791", "label": "Wall_61791", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1oz", "Height": null, "IsExternal": false, "Long Name": "VARDAGSRUM", "Object": "Room", "color": "yellow", "id": "Room_925", "label": "Room_925", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oz\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: VARDAGSRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1o_", "Height": null, "IsExternal": false, "Long Name": "K\u00d6K", "Object": "Room", "color": "yellow", "id": "Room_926", "label": "Room_926", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1o_\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: K\u00d6K\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1oK", "Height": null, "IsExternal": false, "Long Name": "KORRIDOR", "Object": "Room", "color": "yellow", "id": "Room_930", "label": "Room_930", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oK\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: KORRIDOR\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 1.208, "Construction Type": null, "GlobalId": "1wOE2MwBf03f9R8GpskFuS", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 56401, "Object": "Window", "Sill Height": 600, "Type": "Double Window: F15-01 15x16 In\u00e5tg\u00e5ende", "Width": 1500, "color": "purple", "id": "Window_56401", "label": "Window_56401", "shape": "dot", "size": 10, "title": "GlobalId: 1wOE2MwBf03f9R8GpskFuS\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1500\u003cbr\u003eArea: 1.208\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Double Window: F15-01 15x16 In\u00e5tg\u00e5ende"}, {"Area": 1.714, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSg$", "Height": 2200, "Material Exterior": null, "Material Interior": null, "OID": 50098, "Object": "Window", "Sill Height": 0, "Type": "Single Patio Door: FD10-04  F\u00f6nsterd\u00f6rr 1-luft in\u00e5tg\u00e5ende Balkong", "Width": 1020, "color": "purple", "id": "Window_50098", "label": "Window_50098", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSg$\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 0\u003cbr\u003eHeight: 2200\u003cbr\u003eWidth: 1020\u003cbr\u003eArea: 1.714\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Patio Door: FD10-04  F\u00f6nsterd\u00f6rr 1-luft in\u00e5tg\u00e5ende Balkong"}, {"Area": 0.389, "Construction Type": null, "GlobalId": "2nefYOh757WxJJ69EVH2Qe", "Height": 600, "Material Exterior": null, "Material Interior": null, "OID": 56569, "Object": "Window", "Sill Height": 0, "Type": "Single Window: F7-03 7 x6 fast", "Width": 700, "color": "purple", "id": "Window_56569", "label": "Window_56569", "shape": "dot", "size": 10, "title": "GlobalId: 2nefYOh757WxJJ69EVH2Qe\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 0\u003cbr\u003eHeight: 600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.389\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-03 7 x6 fast"}, {"Area": 0.719, "Construction Type": null, "GlobalId": "0SeBC9TD5BjBbdFFaCJVNd", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 108033, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende", "Width": 700, "color": "purple", "id": "Window_108033", "label": "Window_108033", "shape": "dot", "size": 10, "title": "GlobalId: 0SeBC9TD5BjBbdFFaCJVNd\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.719\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdj", "OID": 35284, "color": "grey", "id": "Wall_35284", "label": "Wall_35284", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pD", "OID": 64359, "color": "grey", "id": "Wall_64359", "label": "Wall_64359", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pE", "OID": 64414, "color": "grey", "id": "Wall_64414", "label": "Wall_64414", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pF", "OID": 64469, "color": "grey", "id": "Wall_64469", "label": "Wall_64469", "shape": "dot", "size": 10}, {"GlobalId": "3V4w8SHAjCyBUTFZ8uhZox", "OID": 80131, "color": "grey", "id": "Wall_80131", "label": "Wall_80131", "shape": "dot", "size": 10}, {"GlobalId": "3cYPoAMk90vxvLVMNmmhA7", "OID": 155040, "color": "grey", "id": "Wall_155040", "label": "Wall_155040", "shape": "dot", "size": 10}, {"GlobalId": "1iMxTVpcb2rhU2MxNV6tfy", "OID": 174154, "color": "grey", "id": "Wall_174154", "label": "Wall_174154", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pJ", "OID": 63711, "color": "grey", "id": "Wall_63711", "label": "Wall_63711", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1o$", "Height": null, "IsExternal": false, "Long Name": "SOVRUM", "Object": "Room", "color": "yellow", "id": "Room_927", "label": "Room_927", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1o$\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.655, "Construction Type": null, "External": false, "GlobalId": "3V7W2RscLEExyQLuCnt1o1", "Height": 2110, "OID": 69561, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-1", "Width": 910, "color": "blue", "id": "Door_69561", "label": "Door_69561", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1o1\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.655\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-1\u003cbr\u003eExternal: False"}, {"Area": 0.818, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSk2", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 50343, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F10-01 10x16 In\u00e5tg\u00e5ende", "Width": 1000, "color": "purple", "id": "Window_50343", "label": "Window_50343", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSk2\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1000\u003cbr\u003eArea: 0.818\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F10-01 10x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "3V7W2RscLEExyQLuCnt1pd", "OID": 61552, "color": "grey", "id": "Wall_61552", "label": "Wall_61552", "shape": "dot", "size": 10}, {"GlobalId": "3cYPoAMk90vxvLVMNmmhA6", "OID": 154985, "color": "grey", "id": "Wall_154985", "label": "Wall_154985", "shape": "dot", "size": 10}, {"GlobalId": "0HLErpwlH7GPXIOwElk89Q", "OID": 155878, "color": "grey", "id": "Wall_155878", "label": "Wall_155878", "shape": "dot", "size": 10}, {"GlobalId": "2eAZvXReD5rxCsRcBVQwxO", "OID": 191140, "color": "grey", "id": "Wall_191140", "label": "Wall_191140", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1om", "Height": null, "IsExternal": false, "Long Name": "HALL", "Object": "Room", "color": "yellow", "id": "Room_928", "label": "Room_928", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1om\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: HALL\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"GlobalId": "3cYPoAMk90vxvLVMNmmhA4", "OID": 154930, "color": "grey", "id": "Wall_154930", "label": "Wall_154930", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1ob", "OID": 67702, "color": "grey", "id": "Wall_67702", "label": "Wall_67702", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 4ROK 91.5 KVM", "GlobalId": "3V7W2RscLEExyQLuCnt1oJ", "Height": null, "IsExternal": false, "Long Name": "WC/D", "Object": "Room", "color": "yellow", "id": "Room_929", "label": "Room_929", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oJ\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: WC/D\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 4ROK 91.5 KVM"}, {"Area": 2.671, "Construction Type": null, "External": false, "GlobalId": "3V7W2RscLEExyQLuCnt1oP", "Height": 2110, "OID": 68413, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9a-2", "Width": 910, "color": "blue", "id": "Door_68413", "label": "Door_68413", "shape": "dot", "size": 10, "title": "GlobalId: 3V7W2RscLEExyQLuCnt1oP\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.671\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9a-2\u003cbr\u003eExternal: False"}, {"GlobalId": "1Xdhl_99H1LxtFe91ySc9m", "OID": 156014, "color": "grey", "id": "Wall_156014", "label": "Wall_156014", "shape": "dot", "size": 10}, {"GlobalId": "21UIHKuuP16uj5JCg0qyOs", "OID": 96361, "color": "grey", "id": "Wall_96361", "label": "Wall_96361", "shape": "dot", "size": 10}, {"GlobalId": "3V7W2RscLEExyQLuCnt1p0", "OID": 64524, "color": "grey", "id": "Wall_64524", "label": "Wall_64524", "shape": "dot", "size": 10}, {"GlobalId": "2V0bmays95pR3l2kZG47va", "OID": 175764, "color": "grey", "id": "Wall_175764", "label": "Wall_175764", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4rZ", "Height": null, "IsExternal": false, "Long Name": "SOVRUM", "Object": "Room", "color": "yellow", "id": "Room_1104", "label": "Room_1104", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4rZ\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": 2.655, "Construction Type": null, "External": false, "GlobalId": "2_G3CYmpjD1R88WI3Xz4rg", "Height": 2110, "OID": 156480, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-1", "Width": 910, "color": "blue", "id": "Door_156480", "label": "Door_156480", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4rg\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.655\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-1\u003cbr\u003eExternal: False"}, {"Area": 0.719, "Construction Type": null, "GlobalId": "3F20D9LUzBFPiJKN4mpz_F", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 162919, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende", "Width": 700, "color": "purple", "id": "Window_162919", "label": "Window_162919", "shape": "dot", "size": 10, "title": "GlobalId: 3F20D9LUzBFPiJKN4mpz_F\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.719\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdk", "OID": 35034, "color": "grey", "id": "Wall_35034", "label": "Wall_35034", "shape": "dot", "size": 10}, {"GlobalId": "0JwH4ZBer9exdsW3Xs1$At", "OID": 187746, "color": "grey", "id": "Wall_187746", "label": "Wall_187746", "shape": "dot", "size": 10}, {"GlobalId": "1qLd$aRfnB58C7GyIrSsmo", "OID": 225725, "color": "grey", "id": "Wall_225725", "label": "Wall_225725", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4ql", "OID": 158635, "color": "grey", "id": "Wall_158635", "label": "Wall_158635", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4tE", "OID": 158952, "color": "grey", "id": "Wall_158952", "label": "Wall_158952", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4rk", "OID": 156133, "color": "grey", "id": "Wall_156133", "label": "Wall_156133", "shape": "dot", "size": 10}, {"GlobalId": "1iMxTVpcb2rhU2MxNV6toJ", "OID": 174344, "color": "grey", "id": "Wall_174344", "label": "Wall_174344", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qn", "Height": null, "IsExternal": false, "Long Name": "SOVRUM", "Object": "Room", "color": "yellow", "id": "Room_1105", "label": "Room_1105", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qn\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: SOVRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": 2.655, "Construction Type": null, "External": false, "GlobalId": "2_G3CYmpjD1R88WI3Xz4qO", "Height": 2110, "OID": 156890, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9b-1", "Width": 910, "color": "blue", "id": "Door_156890", "label": "Door_156890", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qO\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.655\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9b-1\u003cbr\u003eExternal: False"}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4qW", "OID": 158489, "color": "grey", "id": "Wall_158489", "label": "Wall_158489", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4tk", "OID": 159401, "color": "grey", "id": "Wall_159401", "label": "Wall_159401", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAcyD9", "OID": 187273, "color": "grey", "id": "Wall_187273", "label": "Wall_187273", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4re", "OID": 156299, "color": "grey", "id": "Wall_156299", "label": "Wall_156299", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4tj", "OID": 159346, "color": "grey", "id": "Wall_159346", "label": "Wall_159346", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qo", "Height": null, "IsExternal": false, "Long Name": "WC/D", "Object": "Room", "color": "yellow", "id": "Room_1106", "label": "Room_1106", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qo\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: WC/D\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": 2.671, "Construction Type": null, "External": false, "GlobalId": "2_G3CYmpjD1R88WI3Xz4rh", "Height": 2110, "OID": 156521, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9a-2", "Width": 910, "color": "blue", "id": "Door_156521", "label": "Door_156521", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4rh\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.671\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9a-2\u003cbr\u003eExternal: False"}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4qC", "OID": 157808, "color": "grey", "id": "Wall_157808", "label": "Wall_157808", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4qD", "OID": 157872, "color": "grey", "id": "Wall_157872", "label": "Wall_157872", "shape": "dot", "size": 10}, {"GlobalId": "1qLd$aRfnB58C7GyIrSs_g", "OID": 225803, "color": "grey", "id": "Wall_225803", "label": "Wall_225803", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4rl", "OID": 156216, "color": "grey", "id": "Wall_156216", "label": "Wall_156216", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4tC", "OID": 158879, "color": "grey", "id": "Wall_158879", "label": "Wall_158879", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qy", "Height": null, "IsExternal": false, "Long Name": "K\u00d6K", "Object": "Room", "color": "yellow", "id": "Room_1107", "label": "Room_1107", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qy\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: K\u00d6K\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qz", "Height": null, "IsExternal": false, "Long Name": "VARDAGSRUM", "Object": "Room", "color": "yellow", "id": "Room_1108", "label": "Room_1108", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qz\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: VARDAGSRUM\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4q$", "Height": null, "IsExternal": false, "Long Name": "HALL", "Object": "Room", "color": "yellow", "id": "Room_1109", "label": "Room_1109", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4q$\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: HALL\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": 0.323, "Construction Type": null, "GlobalId": "0Mha6o8WD5J8XEZRaJyPS7", "Height": 500, "Material Exterior": null, "Material Interior": null, "OID": 84263, "Object": "Window", "Sill Height": 900, "Type": "Single Window: F6-01 6x5 In\u00e5tg\u00e5ende", "Width": 600, "color": "purple", "id": "Window_84263", "label": "Window_84263", "shape": "dot", "size": 10, "title": "GlobalId: 0Mha6o8WD5J8XEZRaJyPS7\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 900\u003cbr\u003eHeight: 500\u003cbr\u003eWidth: 600\u003cbr\u003eArea: 0.323\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F6-01 6x5 In\u00e5tg\u00e5ende"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScE", "OID": 38163, "color": "grey", "id": "Wall_38163", "label": "Wall_38163", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSc2", "OID": 38487, "color": "grey", "id": "Wall_38487", "label": "Wall_38487", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAcyOK", "OID": 187127, "color": "grey", "id": "Wall_187127", "label": "Wall_187127", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4q6", "OID": 157546, "color": "grey", "id": "Wall_157546", "label": "Wall_157546", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4qK", "OID": 156563, "color": "grey", "id": "Wall_156563", "label": "Wall_156563", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4qX", "OID": 158562, "color": "grey", "id": "Wall_158562", "label": "Wall_158562", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qu", "Height": null, "IsExternal": false, "Long Name": "KORRIDOR", "Object": "Room", "color": "yellow", "id": "Room_1110", "label": "Room_1110", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qu\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: KORRIDOR\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"Area": 0.818, "Construction Type": null, "GlobalId": "0aNC3YsFzEZf8uB9g1nSdn", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 37351, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F10-01 10x16 In\u00e5tg\u00e5ende", "Width": 1000, "color": "purple", "id": "Window_37351", "label": "Window_37351", "shape": "dot", "size": 10, "title": "GlobalId: 0aNC3YsFzEZf8uB9g1nSdn\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 1000\u003cbr\u003eArea: 0.818\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F10-01 10x16 In\u00e5tg\u00e5ende"}, {"Area": 0.719, "Construction Type": null, "GlobalId": "3F20D9LUzBFPiJKN4mpzZA", "Height": 1600, "Material Exterior": null, "Material Interior": null, "OID": 162993, "Object": "Window", "Sill Height": 600, "Type": "Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende", "Width": 700, "color": "purple", "id": "Window_162993", "label": "Window_162993", "shape": "dot", "size": 10, "title": "GlobalId: 3F20D9LUzBFPiJKN4mpzZA\u003cbr\u003eObject: Window\u003cbr\u003eConstruction Type: None\u003cbr\u003eSill Height: 600\u003cbr\u003eHeight: 1600\u003cbr\u003eWidth: 700\u003cbr\u003eArea: 0.719\u003cbr\u003eMaterial Interior: None\u003cbr\u003eMaterial Exterior: None\u003cbr\u003eType: Single Window: F7-01 7 x16 In\u00e5tg\u00e5ende"}, {"GlobalId": "1qLd$aRfnB58C7GyIrSs$l", "OID": 225885, "color": "grey", "id": "Wall_225885", "label": "Wall_225885", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAcy7r", "OID": 187201, "color": "grey", "id": "Wall_187201", "label": "Wall_187201", "shape": "dot", "size": 10}, {"Area": 2.534, "Construction Type": null, "External": false, "GlobalId": "2lVIe9Be1FywnC3U3IcDOm", "Height": 2110, "OID": 203323, "Object": "Door", "Object Type": "Single Door Tillg\u00e4nglighet: D9d-1", "Width": 910, "color": "blue", "id": "Door_203323", "label": "Door_203323", "shape": "dot", "size": 10, "title": "GlobalId: 2lVIe9Be1FywnC3U3IcDOm\u003cbr\u003eObject: Door\u003cbr\u003eConstruction Type: None\u003cbr\u003eHeight: 2110\u003cbr\u003eWidth: 910\u003cbr\u003eArea: 2.534\u003cbr\u003eObject Type: Single Door Tillg\u00e4nglighet: D9d-1\u003cbr\u003eExternal: False"}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4rf", "OID": 156408, "color": "grey", "id": "Wall_156408", "label": "Wall_156408", "shape": "dot", "size": 10}, {"Area": null, "Comments": "LGH 3ROK 74 KVM", "GlobalId": "2_G3CYmpjD1R88WI3Xz4qv", "Height": null, "IsExternal": false, "Long Name": "KLK", "Object": "Room", "color": "yellow", "id": "Room_1114", "label": "Room_1114", "shape": "dot", "size": 10, "title": "GlobalId: 2_G3CYmpjD1R88WI3Xz4qv\u003cbr\u003eObject: Room\u003cbr\u003eLong Name: KLK\u003cbr\u003eArea: None\u003cbr\u003eHeight: None\u003cbr\u003eIsExternal: False\u003cbr\u003eComments: LGH 3ROK 74 KVM"}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSd$", "OID": 36757, "color": "grey", "id": "Wall_36757", "label": "Wall_36757", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSdi", "OID": 35366, "color": "grey", "id": "Wall_35366", "label": "Wall_35366", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nScD", "OID": 38235, "color": "grey", "id": "Wall_38235", "label": "Wall_38235", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSda", "OID": 36195, "color": "grey", "id": "Wall_36195", "label": "Wall_36195", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAcyGD", "OID": 187027, "color": "grey", "id": "Wall_187027", "label": "Wall_187027", "shape": "dot", "size": 10}, {"GlobalId": "169UR4u8f5IfysrZg_pJqq", "OID": 203207, "color": "grey", "id": "Wall_203207", "label": "Wall_203207", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSc8", "OID": 37978, "color": "grey", "id": "Wall_37978", "label": "Wall_37978", "shape": "dot", "size": 10}, {"GlobalId": "0MhF3zuEzBXwC_J$8wDDGK", "OID": 100564, "color": "grey", "id": "Wall_100564", "label": "Wall_100564", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAcyZu", "OID": 186944, "color": "grey", "id": "Wall_186944", "label": "Wall_186944", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXiq", "OID": 225127, "color": "grey", "id": "Wall_225127", "label": "Wall_225127", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXj8", "OID": 225347, "color": "grey", "id": "Wall_225347", "label": "Wall_225347", "shape": "dot", "size": 10}, {"GlobalId": "0FhCwfW0b4_fS3V96JxZJx", "OID": 225413, "color": "grey", "id": "Wall_225413", "label": "Wall_225413", "shape": "dot", "size": 10}, {"GlobalId": "33WdFHulr6YhyCfaqbl1_4", "OID": 100376, "color": "grey", "id": "Wall_100376", "label": "Wall_100376", "shape": "dot", "size": 10}, {"GlobalId": "0aNC3YsFzEZf8uB9g1nSes", "OID": 49557, "color": "grey", "id": "Wall_49557", "label": "Wall_49557", "shape": "dot", "size": 10}, {"GlobalId": "3KZQXY$LH1CRfttEb6cves", "OID": 82781, "color": "grey", "id": "Wall_82781", "label": "Wall_82781", "shape": "dot", "size": 10}, {"GlobalId": "3V4w8SHAjCyBUTFZ8uhZV9", "OID": 79427, "color": "grey", "id": "Wall_79427", "label": "Wall_79427", "shape": "dot", "size": 10}, {"GlobalId": "3V4w8SHAjCyBUTFZ8uhZV8", "OID": 79535, "color": "grey", "id": "Wall_79535", "label": "Wall_79535", "shape": "dot", "size": 10}, {"GlobalId": "0XqmV6lT93V9A_AtAupESF", "OID": 98536, "color": "grey", "id": "Wall_98536", "label": "Wall_98536", "shape": "dot", "size": 10}, {"GlobalId": "3xDiDpx$nB2hLMfVxR_vR3", "OID": 159873, "color": "grey", "id": "Wall_159873", "label": "Wall_159873", "shape": "dot", "size": 10}, {"GlobalId": "2_G3CYmpjD1R88WI3Xz4tB", "OID": 159201, "color": "grey", "id": "Wall_159201", "label": "Wall_159201", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXin", "OID": 224819, "color": "grey", "id": "Wall_224819", "label": "Wall_224819", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXir", "OID": 225072, "color": "grey", "id": "Wall_225072", "label": "Wall_225072", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXim", "OID": 224907, "color": "grey", "id": "Wall_224907", "label": "Wall_224907", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXit", "OID": 224962, "color": "grey", "id": "Wall_224962", "label": "Wall_224962", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXis", "OID": 225017, "color": "grey", "id": "Wall_225017", "label": "Wall_225017", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXjB", "OID": 225182, "color": "grey", "id": "Wall_225182", "label": "Wall_225182", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXjA", "OID": 225237, "color": "grey", "id": "Wall_225237", "label": "Wall_225237", "shape": "dot", "size": 10}, {"GlobalId": "2aZ_Dto7fDbevo$VG0HXj9", "OID": 225292, "color": "grey", "id": "Wall_225292", "label": "Wall_225292", "shape": "dot", "size": 10}, {"GlobalId": "0FhCwfW0b4_fS3V96JxZGG", "OID": 225496, "color": "grey", "id": "Wall_225496", "label": "Wall_225496", "shape": "dot", "size": 10}, {"GlobalId": "1WQPFqcij6iRfftGTAczWd", "OID": 187335, "color": "grey", "id": "Wall_187335", "label": "Wall_187335", "shape": "dot", "size": 10}, {"GlobalId": "0pyqDFj1b8ou1XMGj0fk3a", "OID": 201764, "color": "grey", "id": "Wall_201764", "label": "Wall_201764", "shape": "dot", "size": 10}, {"GlobalId": "2cZ6AGv1n9$PsnxX3G51og", "OID": 203732, "color": "grey", "id": "Wall_203732", "label": "Wall_203732", "shape": "dot", "size": 10}, {"GlobalId": "3xcRif4sv86voAEI35bpCh", "OID": 229098, "color": "grey", "id": "Wall_229098", "label": "Wall_229098", "shape": "dot", "size": 10}]);
+                  edges = new vis.DataSet([{"Category": "ContainedIn", "from": "Room_19", "to": "Window_104474", "width": 1}, {"Category": "ContainedIn", "from": "Room_19", "to": "Window_56098", "width": 1}, {"Category": "ContainedIn", "from": "Room_19", "to": "Wall_49833", "width": 1}, {"Category": "ContainedIn", "from": "Room_19", "to": "Wall_104316", "width": 1}, {"Category": "ContainedIn", "from": "Room_20", "to": "Window_50646", "width": 1}, {"Category": "ContainedIn", "from": "Room_20", "to": "Window_48339", "width": 1}, {"Category": "ContainedIn", "from": "Room_20", "to": "Window_48413", "width": 1}, {"Category": "ContainedIn", "from": "Room_20", "to": "Wall_50492", "width": 1}, {"Category": "ContainedIn", "from": "Room_21", "to": "Window_104459", "width": 1}, {"Category": "ContainedIn", "from": "Room_21", "to": "Window_56168", "width": 1}, {"Category": "ContainedIn", "from": "Room_21", "to": "Window_56204", "width": 1}, {"Category": "ContainedIn", "from": "Room_21", "to": "Wall_50380", "width": 1}, {"Category": "ContainedIn", "from": "Room_21", "to": "Wall_104217", "width": 1}, {"Category": "ContainedIn", "from": "Room_27", "to": "Window_36921", "width": 1}, {"Category": "ContainedIn", "from": "Room_27", "to": "Window_100806", "width": 1}, {"Category": "ContainedIn", "from": "Room_27", "to": "Wall_49751", "width": 1}, {"Category": "ContainedIn", "from": "Room_27", "to": "Wall_49639", "width": 1}, {"Category": "ContainedIn", "from": "Room_27", "to": "Wall_100663", "width": 1}, {"Category": "ContainedIn", "from": "Room_28", "to": "Window_100821", "width": 1}, {"Category": "ContainedIn", "from": "Room_28", "to": "Window_35985", "width": 1}, {"Category": "ContainedIn", "from": "Room_28", "to": "Wall_49410", "width": 1}, {"Category": "ContainedIn", "from": "Room_28", "to": "Wall_100449", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Door_162808", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_186737", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_201620", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_187525", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_159274", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_186548", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_35646", "width": 1}, {"Category": "ContainedIn", "from": "Room_98", "to": "Wall_186493", "width": 1}, {"Access": "Direct", "from": "Room_745", "to": "Room_748", "width": 1}, {"Category": "ContainedIn", "from": "Room_745", "to": "Wall_38725", "width": 1}, {"Category": "ContainedIn", "from": "Room_745", "to": "Wall_79608", "width": 1}, {"Category": "ContainedIn", "from": "Room_745", "to": "Wall_35742", "width": 1}, {"Category": "ContainedIn", "from": "Room_745", "to": "Wall_187655", "width": 1}, {"Access": "Direct", "from": "Room_746", "to": "Room_748", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Door_48200", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Door_37273", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_38725", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_39201", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_79608", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_81672", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_35742", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_186658", "width": 1}, {"Category": "ContainedIn", "from": "Room_746", "to": "Wall_186792", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Door_48200", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_39201", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_42464", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_82636", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_186603", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_186792", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_186847", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_187362", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_201647", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_42355", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_35742", "width": 1}, {"Category": "ContainedIn", "from": "Room_747", "to": "Wall_81493", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Window_50646", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Window_48339", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Window_48413", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_50492", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_38725", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_79608", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_81672", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_42355", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_81751", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_156078", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_187362", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_187655", "width": 1}, {"Category": "ContainedIn", "from": "Room_748", "to": "Wall_201702", "width": 1}, {"Category": "ContainedIn", "from": "Room_749", "to": "Door_104755", "width": 1}, {"Category": "ContainedIn", "from": "Room_749", "to": "Wall_35742", "width": 1}, {"Category": "ContainedIn", "from": "Room_749", "to": "Wall_37887", "width": 1}, {"Category": "ContainedIn", "from": "Room_749", "to": "Wall_38569", "width": 1}, {"Category": "ContainedIn", "from": "Room_749", "to": "Wall_38670", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_162808", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_37273", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_104755", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_36670", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_102383", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_228712", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Door_37845", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Window_38383", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Window_38452", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Window_48643", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_187525", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_187655", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_186658", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_186792", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_37887", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_38569", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_38670", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_35804", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_36302", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_186847", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_191019", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_201988", "width": 1}, {"Category": "ContainedIn", "from": "Room_750", "to": "Wall_37423", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Door_68489", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Window_36120", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Window_56636", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_49833", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_104316", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_49972", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_225551", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_69026", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_159745", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_159800", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_68903", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_98600", "width": 1}, {"Category": "ContainedIn", "from": "Room_921", "to": "Wall_159928", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Door_68055", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Window_104474", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Window_56098", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_49833", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_104316", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_201702", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_69026", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_65056", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_155950", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_156078", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_65152", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_61635", "width": 1}, {"Category": "ContainedIn", "from": "Room_922", "to": "Wall_160011", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Door_80056", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Window_56276", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_159745", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_159800", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_225551", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_61718", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_79681", "width": 1}, {"Category": "ContainedIn", "from": "Room_923", "to": "Wall_98854", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Door_68826", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_68903", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_98600", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_159745", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_61718", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_79681", "width": 1}, {"Category": "ContainedIn", "from": "Room_924", "to": "Wall_61791", "width": 1}, {"Access": "Direct", "from": "Room_925", "to": "Room_926", "width": 1}, {"Access": "Direct", "from": "Room_925", "to": "Room_930", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Door_80056", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Window_56401", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Window_50098", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Window_56569", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Window_108033", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_49410", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_100449", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_79681", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_98854", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_35284", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_64359", "width": 1}, {"Category": "ContainedIn", "from": "Room_925", "to": "Wall_225551", "width": 1}, {"Access": "Direct", "from": "Room_926", "to": "Room_930", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Window_100821", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Window_35985", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_49410", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_100449", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_64414", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_64469", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_80131", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_155040", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_174154", "width": 1}, {"Category": "ContainedIn", "from": "Room_926", "to": "Wall_63711", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Door_69561", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Window_50343", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_80131", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_61552", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_154985", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_155878", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_186847", "width": 1}, {"Category": "ContainedIn", "from": "Room_927", "to": "Wall_191140", "width": 1}, {"Access": "Direct", "from": "Room_928", "to": "Room_930", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Door_36670", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Door_69561", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_35742", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_81493", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_186847", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_61552", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_154930", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_201647", "width": 1}, {"Category": "ContainedIn", "from": "Room_928", "to": "Wall_67702", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Door_68413", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_201647", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_65152", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_67702", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_155950", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_156014", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_65056", "width": 1}, {"Category": "ContainedIn", "from": "Room_929", "to": "Wall_96361", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Door_68489", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Door_68055", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Door_68826", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Door_68413", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_159928", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_61635", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_65056", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_160011", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_61791", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_79681", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_63711", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_96361", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_64524", "width": 1}, {"Category": "ContainedIn", "from": "Room_930", "to": "Wall_175764", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Door_156480", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Window_104459", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Window_56168", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Window_162919", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_50380", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_104217", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_35034", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_187746", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_225725", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_158635", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_158952", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_156133", "width": 1}, {"Category": "ContainedIn", "from": "Room_1104", "to": "Wall_174344", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Door_156890", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Window_56204", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_50380", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_104217", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_159274", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_186548", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_158635", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_50492", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_158489", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_159401", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_186493", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_187273", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_156299", "width": 1}, {"Category": "ContainedIn", "from": "Room_1105", "to": "Wall_159346", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Door_156521", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_158952", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_157808", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_157872", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_225803", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_156216", "width": 1}, {"Category": "ContainedIn", "from": "Room_1106", "to": "Wall_158879", "width": 1}, {"Access": "Direct", "from": "Room_1107", "to": "Room_1108", "width": 1}, {"Access": "Direct", "from": "Room_1107", "to": "Room_1109", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Window_36921", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Window_84263", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_49639", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_100663", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_37423", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_38163", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_38487", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_187127", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_157546", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_156563", "width": 1}, {"Category": "ContainedIn", "from": "Room_1107", "to": "Wall_158562", "width": 1}, {"Access": "Direct", "from": "Room_1108", "to": "Room_1109", "width": 1}, {"Access": "Direct", "from": "Room_1108", "to": "Room_1110", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Window_100806", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Window_37351", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Window_162993", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_49639", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_100663", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_156216", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_158879", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_157546", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_49751", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_225885", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_156563", "width": 1}, {"Category": "ContainedIn", "from": "Room_1108", "to": "Wall_187201", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Door_37845", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Door_203323", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_35646", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_37423", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_156563", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_158562", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_156408", "width": 1}, {"Category": "ContainedIn", "from": "Room_1109", "to": "Wall_187201", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Door_156480", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Door_156890", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Door_156521", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_156133", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_174344", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_156299", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_158635", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_156216", "width": 1}, {"Category": "ContainedIn", "from": "Room_1110", "to": "Wall_187201", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Door_203323", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_159274", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_186493", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_158489", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_159346", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_187201", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_156408", "width": 1}, {"Category": "ContainedIn", "from": "Room_1114", "to": "Wall_156299", "width": 1}, {"Category": "IsConnected", "from": "Wall_35034", "to": "Wall_36757", "width": 1}, {"Category": "IsConnected", "from": "Wall_35034", "to": "Wall_50380", "width": 1}, {"Category": "IsConnected", "from": "Wall_35034", "to": "Wall_104217", "width": 1}, {"Category": "IsConnected", "from": "Wall_35034", "to": "Wall_225725", "width": 1}, {"Category": "IsConnected", "from": "Wall_35284", "to": "Wall_35366", "width": 1}, {"Category": "IsConnected", "from": "Wall_35284", "to": "Wall_49410", "width": 1}, {"Category": "IsConnected", "from": "Wall_35284", "to": "Wall_100449", "width": 1}, {"Category": "IsConnected", "from": "Wall_35284", "to": "Wall_225551", "width": 1}, {"Category": "IsConnected", "from": "Wall_35366", "to": "Wall_49972", "width": 1}, {"Category": "IsConnected", "from": "Wall_35366", "to": "Wall_225551", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_37423", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_156408", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_186493", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_186548", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_186737", "width": 1}, {"Category": "IsConnected", "from": "Wall_35646", "to": "Wall_187525", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_37887", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_38670", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_35804", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_81493", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_186603", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_186792", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_186658", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_187655", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_35742", "to": "Wall_201647", "width": 1}, {"Category": "IsConnected", "from": "Wall_35804", "to": "Wall_38235", "width": 1}, {"Category": "IsConnected", "from": "Wall_35804", "to": "Wall_36195", "width": 1}, {"Category": "IsConnected", "from": "Wall_35804", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_35804", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_35804", "to": "Wall_203207", "width": 1}, {"Category": "IsConnected", "from": "Wall_36195", "to": "Wall_36302", "width": 1}, {"Category": "IsConnected", "from": "Wall_36302", "to": "Wall_37978", "width": 1}, {"Category": "IsConnected", "from": "Wall_36302", "to": "Wall_100564", "width": 1}, {"Category": "IsConnected", "from": "Wall_36302", "to": "Wall_186944", "width": 1}, {"Category": "IsConnected", "from": "Wall_36302", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_36302", "to": "Wall_203207", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_49751", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_157808", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_187746", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_225803", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_225885", "width": 1}, {"Category": "IsConnected", "from": "Wall_36757", "to": "Wall_225725", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_38163", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_37978", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_100564", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_158562", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_187127", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_187525", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_225127", "width": 1}, {"Category": "IsConnected", "from": "Wall_37423", "to": "Wall_225347", "width": 1}, {"Category": "IsConnected", "from": "Wall_37887", "to": "Wall_38569", "width": 1}, {"Category": "IsConnected", "from": "Wall_37887", "to": "Wall_187655", "width": 1}, {"Category": "IsConnected", "from": "Wall_37978", "to": "Wall_38163", "width": 1}, {"Category": "IsConnected", "from": "Wall_37978", "to": "Wall_100564", "width": 1}, {"Category": "IsConnected", "from": "Wall_37978", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_37978", "to": "Wall_225413", "width": 1}, {"Category": "IsConnected", "from": "Wall_38163", "to": "Wall_38487", "width": 1}, {"Category": "IsConnected", "from": "Wall_38163", "to": "Wall_100376", "width": 1}, {"Category": "IsConnected", "from": "Wall_38163", "to": "Wall_100564", "width": 1}, {"Category": "IsConnected", "from": "Wall_38163", "to": "Wall_187127", "width": 1}, {"Category": "IsConnected", "from": "Wall_38235", "to": "Wall_49557", "width": 1}, {"Category": "IsConnected", "from": "Wall_38235", "to": "Wall_100376", "width": 1}, {"Category": "IsConnected", "from": "Wall_38235", "to": "Wall_186944", "width": 1}, {"Category": "IsConnected", "from": "Wall_38235", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_38235", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_38487", "to": "Wall_49639", "width": 1}, {"Category": "IsConnected", "from": "Wall_38487", "to": "Wall_100663", "width": 1}, {"Category": "IsConnected", "from": "Wall_38487", "to": "Wall_187127", "width": 1}, {"Category": "IsConnected", "from": "Wall_38569", "to": "Wall_38670", "width": 1}, {"Category": "IsConnected", "from": "Wall_38725", "to": "Wall_79608", "width": 1}, {"Category": "IsConnected", "from": "Wall_38725", "to": "Wall_81672", "width": 1}, {"Category": "IsConnected", "from": "Wall_38725", "to": "Wall_186658", "width": 1}, {"Category": "IsConnected", "from": "Wall_39201", "to": "Wall_42355", "width": 1}, {"Category": "IsConnected", "from": "Wall_39201", "to": "Wall_82781", "width": 1}, {"Category": "IsConnected", "from": "Wall_39201", "to": "Wall_186792", "width": 1}, {"Category": "IsConnected", "from": "Wall_42355", "to": "Wall_42464", "width": 1}, {"Category": "IsConnected", "from": "Wall_42355", "to": "Wall_82781", "width": 1}, {"Category": "IsConnected", "from": "Wall_42464", "to": "Wall_81751", "width": 1}, {"Category": "IsConnected", "from": "Wall_42464", "to": "Wall_82636", "width": 1}, {"Category": "IsConnected", "from": "Wall_49410", "to": "Wall_49557", "width": 1}, {"Category": "IsConnected", "from": "Wall_49410", "to": "Wall_100449", "width": 1}, {"Category": "IsConnected", "from": "Wall_49557", "to": "Wall_80131", "width": 1}, {"Category": "IsConnected", "from": "Wall_49557", "to": "Wall_100376", "width": 1}, {"Category": "IsConnected", "from": "Wall_49557", "to": "Wall_100449", "width": 1}, {"Category": "IsConnected", "from": "Wall_49557", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_49639", "to": "Wall_49751", "width": 1}, {"Category": "IsConnected", "from": "Wall_49639", "to": "Wall_100663", "width": 1}, {"Category": "IsConnected", "from": "Wall_49751", "to": "Wall_100663", "width": 1}, {"Category": "IsConnected", "from": "Wall_49751", "to": "Wall_225885", "width": 1}, {"Category": "IsConnected", "from": "Wall_49833", "to": "Wall_49972", "width": 1}, {"Category": "IsConnected", "from": "Wall_49833", "to": "Wall_50492", "width": 1}, {"Category": "IsConnected", "from": "Wall_49833", "to": "Wall_69026", "width": 1}, {"Category": "IsConnected", "from": "Wall_49833", "to": "Wall_79427", "width": 1}, {"Category": "IsConnected", "from": "Wall_49833", "to": "Wall_104316", "width": 1}, {"Category": "IsConnected", "from": "Wall_49972", "to": "Wall_104316", "width": 1}, {"Category": "IsConnected", "from": "Wall_49972", "to": "Wall_225551", "width": 1}, {"Category": "IsConnected", "from": "Wall_50380", "to": "Wall_50492", "width": 1}, {"Category": "IsConnected", "from": "Wall_50380", "to": "Wall_104217", "width": 1}, {"Category": "IsConnected", "from": "Wall_50380", "to": "Wall_158635", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_79427", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_79535", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_104316", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_104217", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_186548", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_187273", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_187362", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_187655", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_187525", "width": 1}, {"Category": "IsConnected", "from": "Wall_50492", "to": "Wall_201702", "width": 1}, {"Category": "IsConnected", "from": "Wall_61552", "to": "Wall_154930", "width": 1}, {"Category": "IsConnected", "from": "Wall_61552", "to": "Wall_155878", "width": 1}, {"Category": "IsConnected", "from": "Wall_61552", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_61635", "to": "Wall_69026", "width": 1}, {"Category": "IsConnected", "from": "Wall_61635", "to": "Wall_160011", "width": 1}, {"Category": "IsConnected", "from": "Wall_61635", "to": "Wall_159928", "width": 1}, {"Category": "IsConnected", "from": "Wall_61718", "to": "Wall_79681", "width": 1}, {"Category": "IsConnected", "from": "Wall_61718", "to": "Wall_98600", "width": 1}, {"Category": "IsConnected", "from": "Wall_61718", "to": "Wall_98854", "width": 1}, {"Category": "IsConnected", "from": "Wall_61791", "to": "Wall_68903", "width": 1}, {"Category": "IsConnected", "from": "Wall_61791", "to": "Wall_79681", "width": 1}, {"Category": "IsConnected", "from": "Wall_63711", "to": "Wall_64469", "width": 1}, {"Category": "IsConnected", "from": "Wall_64359", "to": "Wall_64414", "width": 1}, {"Category": "IsConnected", "from": "Wall_64359", "to": "Wall_64524", "width": 1}, {"Category": "IsConnected", "from": "Wall_64414", "to": "Wall_64469", "width": 1}, {"Category": "IsConnected", "from": "Wall_64469", "to": "Wall_64524", "width": 1}, {"Category": "IsConnected", "from": "Wall_65056", "to": "Wall_65152", "width": 1}, {"Category": "IsConnected", "from": "Wall_65056", "to": "Wall_96361", "width": 1}, {"Category": "IsConnected", "from": "Wall_65056", "to": "Wall_160011", "width": 1}, {"Category": "IsConnected", "from": "Wall_65152", "to": "Wall_155950", "width": 1}, {"Category": "IsConnected", "from": "Wall_65152", "to": "Wall_160011", "width": 1}, {"Category": "IsConnected", "from": "Wall_67702", "to": "Wall_96361", "width": 1}, {"Category": "IsConnected", "from": "Wall_67702", "to": "Wall_201647", "width": 1}, {"Category": "IsConnected", "from": "Wall_68903", "to": "Wall_98536", "width": 1}, {"Category": "IsConnected", "from": "Wall_68903", "to": "Wall_159745", "width": 1}, {"Category": "IsConnected", "from": "Wall_68903", "to": "Wall_159928", "width": 1}, {"Category": "IsConnected", "from": "Wall_69026", "to": "Wall_104316", "width": 1}, {"Category": "IsConnected", "from": "Wall_79427", "to": "Wall_104316", "width": 1}, {"Category": "IsConnected", "from": "Wall_79608", "to": "Wall_81672", "width": 1}, {"Category": "IsConnected", "from": "Wall_79681", "to": "Wall_98854", "width": 1}, {"Category": "IsConnected", "from": "Wall_80131", "to": "Wall_100449", "width": 1}, {"Category": "IsConnected", "from": "Wall_80131", "to": "Wall_154985", "width": 1}, {"Category": "IsConnected", "from": "Wall_81493", "to": "Wall_186847", "width": 1}, {"Category": "IsConnected", "from": "Wall_81751", "to": "Wall_187362", "width": 1}, {"Category": "IsConnected", "from": "Wall_82636", "to": "Wall_187362", "width": 1}, {"Category": "IsConnected", "from": "Wall_98536", "to": "Wall_98600", "width": 1}, {"Category": "IsConnected", "from": "Wall_98536", "to": "Wall_159745", "width": 1}, {"Category": "IsConnected", "from": "Wall_98600", "to": "Wall_159873", "width": 1}, {"Category": "IsConnected", "from": "Wall_98854", "to": "Wall_225551", "width": 1}, {"Category": "IsConnected", "from": "Wall_100564", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_104217", "to": "Wall_158635", "width": 1}, {"Category": "IsConnected", "from": "Wall_154930", "to": "Wall_155040", "width": 1}, {"Category": "IsConnected", "from": "Wall_154930", "to": "Wall_155878", "width": 1}, {"Category": "IsConnected", "from": "Wall_154930", "to": "Wall_174154", "width": 1}, {"Category": "IsConnected", "from": "Wall_154930", "to": "Wall_175764", "width": 1}, {"Category": "IsConnected", "from": "Wall_154985", "to": "Wall_155040", "width": 1}, {"Category": "IsConnected", "from": "Wall_154985", "to": "Wall_155878", "width": 1}, {"Category": "IsConnected", "from": "Wall_155040", "to": "Wall_174154", "width": 1}, {"Category": "IsConnected", "from": "Wall_155040", "to": "Wall_175764", "width": 1}, {"Category": "IsConnected", "from": "Wall_155950", "to": "Wall_156014", "width": 1}, {"Category": "IsConnected", "from": "Wall_155950", "to": "Wall_156078", "width": 1}, {"Category": "IsConnected", "from": "Wall_156078", "to": "Wall_201702", "width": 1}, {"Category": "IsConnected", "from": "Wall_156133", "to": "Wall_158635", "width": 1}, {"Category": "IsConnected", "from": "Wall_156133", "to": "Wall_174344", "width": 1}, {"Category": "IsConnected", "from": "Wall_156216", "to": "Wall_158879", "width": 1}, {"Category": "IsConnected", "from": "Wall_156216", "to": "Wall_158952", "width": 1}, {"Category": "IsConnected", "from": "Wall_156216", "to": "Wall_174344", "width": 1}, {"Category": "IsConnected", "from": "Wall_156299", "to": "Wall_158489", "width": 1}, {"Category": "IsConnected", "from": "Wall_156299", "to": "Wall_158635", "width": 1}, {"Category": "IsConnected", "from": "Wall_156299", "to": "Wall_187201", "width": 1}, {"Category": "IsConnected", "from": "Wall_156408", "to": "Wall_186493", "width": 1}, {"Category": "IsConnected", "from": "Wall_156408", "to": "Wall_187201", "width": 1}, {"Category": "IsConnected", "from": "Wall_156563", "to": "Wall_157546", "width": 1}, {"Category": "IsConnected", "from": "Wall_156563", "to": "Wall_159201", "width": 1}, {"Category": "IsConnected", "from": "Wall_157808", "to": "Wall_157872", "width": 1}, {"Category": "IsConnected", "from": "Wall_157808", "to": "Wall_225803", "width": 1}, {"Category": "IsConnected", "from": "Wall_157872", "to": "Wall_158952", "width": 1}, {"Category": "IsConnected", "from": "Wall_157872", "to": "Wall_187746", "width": 1}, {"Category": "IsConnected", "from": "Wall_158489", "to": "Wall_159401", "width": 1}, {"Category": "IsConnected", "from": "Wall_158489", "to": "Wall_159274", "width": 1}, {"Category": "IsConnected", "from": "Wall_158489", "to": "Wall_158635", "width": 1}, {"Category": "IsConnected", "from": "Wall_158879", "to": "Wall_225803", "width": 1}, {"Category": "IsConnected", "from": "Wall_158879", "to": "Wall_225885", "width": 1}, {"Category": "IsConnected", "from": "Wall_159274", "to": "Wall_159346", "width": 1}, {"Category": "IsConnected", "from": "Wall_159274", "to": "Wall_159401", "width": 1}, {"Category": "IsConnected", "from": "Wall_159346", "to": "Wall_186493", "width": 1}, {"Category": "IsConnected", "from": "Wall_159346", "to": "Wall_186548", "width": 1}, {"Category": "IsConnected", "from": "Wall_159401", "to": "Wall_187273", "width": 1}, {"Category": "IsConnected", "from": "Wall_159745", "to": "Wall_159800", "width": 1}, {"Category": "IsConnected", "from": "Wall_159745", "to": "Wall_159873", "width": 1}, {"Category": "IsConnected", "from": "Wall_159800", "to": "Wall_159873", "width": 1}, {"Category": "IsConnected", "from": "Wall_159800", "to": "Wall_225551", "width": 1}, {"Category": "IsConnected", "from": "Wall_174154", "to": "Wall_175764", "width": 1}, {"Category": "IsConnected", "from": "Wall_186493", "to": "Wall_186548", "width": 1}, {"Category": "IsConnected", "from": "Wall_186548", "to": "Wall_186737", "width": 1}, {"Category": "IsConnected", "from": "Wall_186548", "to": "Wall_187273", "width": 1}, {"Category": "IsConnected", "from": "Wall_186603", "to": "Wall_186792", "width": 1}, {"Category": "IsConnected", "from": "Wall_186603", "to": "Wall_187362", "width": 1}, {"Category": "IsConnected", "from": "Wall_186603", "to": "Wall_201647", "width": 1}, {"Category": "IsConnected", "from": "Wall_186658", "to": "Wall_186792", "width": 1}, {"Category": "IsConnected", "from": "Wall_186658", "to": "Wall_187655", "width": 1}, {"Category": "IsConnected", "from": "Wall_186737", "to": "Wall_187525", "width": 1}, {"Category": "IsConnected", "from": "Wall_186944", "to": "Wall_187027", "width": 1}, {"Category": "IsConnected", "from": "Wall_187362", "to": "Wall_201702", "width": 1}, {"Category": "IsConnected", "from": "Wall_187655", "to": "Wall_224819", "width": 1}, {"Category": "IsConnected", "from": "Wall_187655", "to": "Wall_225072", "width": 1}, {"Category": "IsConnected", "from": "Wall_187746", "to": "Wall_225725", "width": 1}, {"Category": "IsConnected", "from": "Wall_224819", "to": "Wall_224907", "width": 1}, {"Category": "IsConnected", "from": "Wall_224907", "to": "Wall_224962", "width": 1}, {"Category": "IsConnected", "from": "Wall_224962", "to": "Wall_225017", "width": 1}, {"Category": "IsConnected", "from": "Wall_225017", "to": "Wall_225072", "width": 1}, {"Category": "IsConnected", "from": "Wall_225127", "to": "Wall_225182", "width": 1}, {"Category": "IsConnected", "from": "Wall_225182", "to": "Wall_225237", "width": 1}, {"Category": "IsConnected", "from": "Wall_225237", "to": "Wall_225292", "width": 1}, {"Category": "IsConnected", "from": "Wall_225292", "to": "Wall_225347", "width": 1}, {"Category": "IsConnected", "from": "Wall_225413", "to": "Wall_225496", "width": 1}, {"Category": "IsConnected", "from": "Wall_225803", "to": "Wall_225885", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
