@@ -10,6 +10,7 @@ from topologicpy.Cell import Cell
 from topologicpy.Dictionary import Dictionary
 from topologicpy.Cluster import Cluster
 from topologicpy.CellComplex import CellComplex
+from neo4j import GraphDatabase
 
 
 # Setup logging
@@ -21,6 +22,9 @@ with open("config.yaml", "r") as f:
 
 ifc_file_path = config["ifc_file"]
 storey_name = config["storey_name"]
+uri = config["uri"]
+username = config["username"]
+password = config["password"]
 
 # Load IFC
 ifc_file = ifcopenshell.open(ifc_file_path)
@@ -85,6 +89,7 @@ def rotation_matrix_to_axis_angle(R):
 
     return axis, angle_degrees
 
+dic_walls = {}
 topo_walls = []
 i = 1
 
@@ -322,21 +327,131 @@ for wall_guid in wall_guids:
         cells.append(final_topology)
 
     if cells != []:
-        # Create cell complex, add Info and add to cluster
+        # Create dictionary with walls
+        dic_walls[wall_guid] = cells
+
+        # Create cell complex, add to cluster
         complex = CellComplex.ByCells(cells)
         topo_walls.append(complex)
-        print(i)
-    
+
     i += 1
 
-#print(f"{len(topo_walls)} Walls from {len(wall_guids)} sucessfuly constructed")
-topo_cluster = Cluster.ByTopologies(topo_walls)  # Combine all cell complexes into one cluster
+topo_cluster = Cluster.ByTopologies(topo_walls) 
 
-###################################################################
-
+print("--- Reconstructing Walls Done ---")
 
 
+print("--- Start Reconstruction Spaces (this may take a while) ---")
 
+topo_spaces = Topology.ByIFCFile(file=ifc_file, transferDictionaries=True, includeTypes=['IfcSpace'])
 
+# Dictionary für gültige Raumtopologien
+dic_spaces = {}
 
+# Überprüfen und Filtern der gültigen Topologien für Räume
+for item in topo_spaces:
+    try:
+        # Versuche, das Dictionary der Topologie abzurufen
+        topo_dict = Topology.Dictionary(item)
+        if topo_dict is not None:  # Überprüfe, ob ein gültiges Dictionary zurückgegeben wird
+            guid = Dictionary.ValueAtKey(topo_dict, "IFC_guid")
+            if guid:  # Überprüfe, ob die GUID tatsächlich gefunden wurde
+                dic_spaces[guid] = item  # Füge das Item zum Dictionary hinzu
+            else:
+                print("IFC_guid nicht gefunden. Überspringe dieses Element.")
+        else:
+            print("Ungültige Topologie erkannt. Überspringe dieses Element.")
+    except Exception as e:
+        # Falls ein Fehler auftritt, überspringe das Element
+        print(f"Fehler bei der Verarbeitung der Topologie: {e}")
+        continue  # Setzt die Schleife fort und überspringt das ungültige Element
 
+print("--- Reconstructing Spaces Done ---")
+
+print("--- Starting to Write Relations to Database ---")
+
+# Initialisiere die Datenbankverbindung
+driver = GraphDatabase.driver(uri, auth=(username, password))
+
+def create_material_node(tx, material_name, unique_id):
+    # Erstelle den Material-Node mit einem eindeutigen Identifikator
+    query = "MERGE (m:Material {name: $material_name, unique_id: $unique_id})"
+    tx.run(query, material_name=material_name, unique_id=unique_id)
+
+def scale_topology_to_meters(topology):
+    # Skaliert die gesamte Topologie von Millimetern zu Metern
+    scaled_topology = Topology.Scale(topology, origin=(0, 0, 0), x=0.001, y=0.001, z=0.001)
+    return scaled_topology
+
+def find_touching_rooms(layer, room_topologies):
+    # Diese Funktion prüft, ob eine Schicht (layer) einen der Räume (room_topologies) berührt.
+    touching_rooms = []
+    cells_layer = Topology.Cells(layer)  # Holen Sie die Zellen der Schicht
+
+    for room_guid, room_topology in room_topologies.items():
+        merged_topology = Topology.Merge(layer, room_topology)
+        shared_faces = Topology.SharedFaces(Topology.Cells(merged_topology)[0], Topology.Cells(merged_topology)[1])
+        if shared_faces:
+            touching_rooms.append(room_guid)
+
+    return touching_rooms
+
+def create_edge(tx, start_id, end_id, start_label, end_label, start_id_key="GlobalId", end_id_key="unique_id", relationship_type="ConsistsOf"):
+    query = f"""
+    MATCH (start:{start_label} {{{start_id_key}: $start_id}})
+    MATCH (end:{end_label} {{{end_id_key}: $end_id}})
+    MERGE (start)-[:{relationship_type}]->(end)
+    """
+    try:
+        result = tx.run(query, start_id=start_id, end_id=end_id)
+        # if result and result._summary.counters.contains_updates:
+        #     print(f"Edge '{relationship_type}' created between {start_label} '{start_id}' and {end_label} '{end_id}'.")
+        # else:
+        #     print(f"Failed to create edge '{relationship_type}' between {start_label} '{start_id}' and {end_label} '{end_id}'. Check if nodes exist.")
+    except Exception as e:
+        print(f"Error while creating edge '{relationship_type}' between {start_label} '{start_id}' and {end_label} '{end_id}': {e}")
+
+# Beispiel für die Verwendung von execute_write
+with driver.session() as session:
+    i = 0
+    for wall_guid, layers in dic_walls.items():
+        print(f"{i}")
+        previous_unique_id = None
+
+        # Skaliere die gesamte Topologie der Wände in Meter
+        scaled_layers = [scale_topology_to_meters(layer) for layer in layers]
+
+        # Iteriere durch jede Schicht (Cell) in der Liste der skalierten Schichten für die Wand
+        for index, layer in enumerate(scaled_layers):
+            layer_dict = Topology.Dictionary(layer)
+            material_name = Dictionary.ValueAtKey(layer_dict, "material")
+            
+            if material_name:  # Überprüfe, ob der Materialname vorhanden ist
+                # Erstelle einen eindeutigen Identifikator für das Material
+                unique_id = f"{wall_guid}_{index}_{material_name}"
+
+                # Erstelle den Material-Node für die Schicht mit dem eindeutigen Identifikator
+                session.execute_write(create_material_node, material_name, unique_id)
+                
+                # Verknüpfe die Schicht mit der Wand (ConsistsOf)
+                session.execute_write(create_edge, wall_guid, unique_id, "Wall", "Material", "GlobalId", "unique_id", "ConsistsOf")
+
+                # Verknüpfe benachbarte Schichten (InternallyConnected)
+                if previous_unique_id:
+                    session.execute_write(create_edge, previous_unique_id, unique_id, "Material", "Material", "unique_id", "unique_id", "InternallyConnected")
+
+                # Aktualisiere den vorherigen unique_id
+                previous_unique_id = unique_id
+
+                # Überprüfe, ob die Schicht Räume berührt (nur für die äußersten Schichten relevant)
+                if index == 0 or index == len(layers) - 1:
+                    touching_rooms = find_touching_rooms(layer, dic_spaces)
+                    for room_guid in touching_rooms:
+                        # Erstelle die 'IsFacing' Beziehung
+                        session.execute_write(create_edge, unique_id, room_guid, "Material", "Room", "unique_id", "GlobalId", "IsFacing")
+            else:
+                print(f"Materialname fehlt für eine Schicht in Wand {wall_guid}. Überspringe diese Schicht.")
+        i += 1
+
+# Schließe die Verbindung zur Datenbank
+driver.close()
