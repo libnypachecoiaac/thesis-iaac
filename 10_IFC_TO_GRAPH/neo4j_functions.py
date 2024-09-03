@@ -385,3 +385,79 @@ def extract_quantities(element):
                         net_floor_area = quantity.AreaValue
 
     return height, gross_floor_area, gross_volume, net_floor_area
+
+def process_furniture(driver, ifc_file, storey_name):
+    # Definieren Sie die Schlüsselwörter für den Filter
+    furniture_keywords = {
+        "Bett": "ligg",
+        "WC/Waschbecken/Dusche": "wc",
+        "Waschmaschine": "trätt",
+        "Kühlschrank": "kyl",
+        "Gefrierschrank": "frys",
+        "Herd": "spis"
+    }
+
+    with driver.session() as session:
+        # Iteriere über alle `IfcRelContainedInSpatialStructure`-Beziehungen
+        for rel in ifc_file.by_type("IfcRelContainedInSpatialStructure"):
+            if rel.is_a("IfcRelContainedInSpatialStructure") and rel.RelatingStructure.is_a("IfcSpace"):
+                space = rel.RelatingStructure
+                space_global_id = space.GlobalId
+
+                for furniture in rel.RelatedElements:
+                    object_type = getattr(furniture, 'ObjectType', '').lower()  # `ObjectType` in Kleinbuchstaben
+                    # Überprüfen, ob der `ObjectType` eines der Schlüsselwörter enthält
+                    if any(keyword in object_type for keyword in furniture_keywords.values()):
+                        furniture_global_id = furniture.GlobalId
+                        level = storey_name  # Standardmäßig das Stockwerk aus `storey_name`
+
+                        # Suchen nach Level im Raum
+                        for structure_rel in furniture.ContainedInStructure:
+                            if structure_rel.is_a("IfcRelContainedInSpatialStructure") and structure_rel.RelatingStructure.is_a("IfcBuildingStorey"):
+                                level = str(structure_rel.RelatingStructure.Name)  # Sicherstellen, dass Level ein String ist
+                                break
+
+                        # Node für Möbelstück erstellen
+                        session.write_transaction(
+                            add_furniture_node, furniture_global_id, object_type, level
+                        )
+
+                        # Edge zwischen Möbelstück und Raum erstellen
+                        session.write_transaction(
+                            add_edge, furniture_global_id, space_global_id, "ContainedIn"
+                        )
+                    # Wenn `ObjectType` nicht passt, wird der Node nicht erstellt.
+
+def add_furniture_node(tx, global_id, object_type, level):
+    tx.run(
+        """
+        MERGE (n:Furniture {GlobalId: $global_id})
+        ON CREATE SET n.ObjectType = $object_type,
+                      n.Level = $level
+        """,
+        global_id=global_id,
+        object_type=object_type,
+        level=level
+    )
+
+def cleanup_isolated_nodes(driver, level_name):
+    with driver.session() as session:
+        # Löschen von isolierten Wall-Nodes auf dem spezifischen Geschoss
+        session.run(
+            """
+            MATCH (w:Wall)
+            WHERE NOT (w)--() AND w.Level = $level_name
+            DELETE w
+            """,
+            level_name=level_name
+        )
+
+        # Löschen von isolierten Furniture-Nodes auf dem spezifischen Geschoss
+        session.run(
+            """
+            MATCH (f:Furniture)
+            WHERE NOT (f)--() AND f.Level = $level_name
+            DELETE f
+            """,
+            level_name=level_name
+        )

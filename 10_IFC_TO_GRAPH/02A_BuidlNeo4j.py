@@ -11,7 +11,9 @@ from neo4j_functions import (
     process_wall_adjacency, 
     process_element_hosts, 
     process_direct_connections, 
-    process_element_connections
+    process_element_connections,
+    process_furniture,
+    cleanup_isolated_nodes
 )
 
 def filter_ifcspaces_by_storey(spaces, storey_name):
@@ -84,6 +86,12 @@ def main():
     process_direct_connections(driver, csv_room_to_room)
     process_element_connections(driver, csv_doors, "Door")
     process_element_connections(driver, csv_windows, "Window")
+
+    # Neue Funktion zum Hinzufügen von Einrichtungsgegenständen aufrufen
+    process_furniture(driver, ifc_file, storey_name)
+
+    # Bereinigung von isolierten Wall- und Furniture-Nodes
+    cleanup_isolated_nodes(driver, storey_name)
 
     # Verbindung schließen
     driver.close()
