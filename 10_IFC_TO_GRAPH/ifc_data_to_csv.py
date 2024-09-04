@@ -285,10 +285,31 @@ def find_touching_walls(topology1, topology2):
 
     for index1, cell1 in enumerate(cells1):
         for index2, cell2 in enumerate(cells2):
-            merged_cell = Topology.Merge(cell1, cell2)
-            shared_faces = Topology.SharedFaces((Topology.Cells(merged_cell)[0]), (Topology.Cells(merged_cell)[1]))
-            if shared_faces:
-                return True
+            
+            # Check if cell1 and cell2 are valid Topology objects
+            if not isinstance(cell1, Topology) or not isinstance(cell2, Topology):
+                print(f"Invalid topology object: cell1={cell1}, cell2={cell2}")
+                continue
+
+            # Print the indices and GUIDs of the topologies being processed
+            print(f"Processing Topology {index1} and {index2}")
+            print(f"Cell1 GUID: {Dictionary.ValueAtKey(Topology.Dictionary(cell1), 'IFC_guid')}")
+            print(f"Cell2 GUID: {Dictionary.ValueAtKey(Topology.Dictionary(cell2), 'IFC_guid')}")
+
+            try:
+                # Attempt to merge the cells
+                merged_cell = Topology.Merge(cell1, cell2)
+                shared_faces = Topology.SharedFaces(
+                    Topology.Cells(merged_cell)[0], Topology.Cells(merged_cell)[1]
+                )
+                if shared_faces:
+                    return True
+            except RuntimeError as e:
+                # Catch and print any RuntimeErrors from the merge operation
+                print(f"Failed to merge topologies: {e}")
+                print(f"Cell1: {cell1}, Cell2: {cell2}")
+                continue
+
     return False
 
 def wall_to_wall_connectivity(ifc_file, storey_name):
