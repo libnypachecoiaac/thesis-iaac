@@ -287,9 +287,9 @@ def find_touching_walls(topology1, topology2):
         for index2, cell2 in enumerate(cells2):
             
             # Check if cell1 and cell2 are valid Topology objects
-            if not isinstance(cell1, Topology) or not isinstance(cell2, Topology):
-                print(f"Invalid topology object: cell1={cell1}, cell2={cell2}")
-                continue
+            #if not isinstance(cell1, Topology) or not isinstance(cell2, Topology):
+            #    print(f"Invalid topology object: cell1={cell1}, cell2={cell2}")
+            #    continue
 
             # Print the indices and GUIDs of the topologies being processed
             print(f"Processing Topology {index1} and {index2}")
