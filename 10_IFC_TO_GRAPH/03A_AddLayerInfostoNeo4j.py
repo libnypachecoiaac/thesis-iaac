@@ -36,7 +36,7 @@ for wall in ifc_file.by_type("IfcWall"):
     if wall.ContainedInStructure:
         for rel in wall.ContainedInStructure:
             # Check if Wall is in TargetStorey
-            if rel.RelatingStructure.Name == "Plan 10":
+            if rel.RelatingStructure.Name == storey_name:
                 wall_guids.append(wall.GlobalId)
 
 logging.debug("GUIDs von Wänden in Plan 10: %s", wall_guids)
@@ -354,7 +354,7 @@ for item in topo_spaces:
         # Versuche, das Dictionary der Topologie abzurufen
         topo_dict = Topology.Dictionary(item)
         if topo_dict is not None:  # Überprüfe, ob ein gültiges Dictionary zurückgegeben wird
-            guid = Dictionary.ValueAtKey(topo_dict, "IFC_guid")
+            guid = Dictionary.ValueAtKey(topo_dict, "IFC_global_id")
             if guid:  # Überprüfe, ob die GUID tatsächlich gefunden wurde
                 dic_spaces[guid] = item  # Füge das Item zum Dictionary hinzu
             else:
@@ -384,6 +384,8 @@ def scale_topology_to_meters(topology):
     return scaled_topology
 
 def find_touching_rooms(layer, room_topologies):
+    print(layer)
+    print(room_topologies)
     # Diese Funktion prüft, ob eine Schicht (layer) einen der Räume (room_topologies) berührt.
     touching_rooms = []
     cells_layer = Topology.Cells(layer)  # Holen Sie die Zellen der Schicht
@@ -391,6 +393,7 @@ def find_touching_rooms(layer, room_topologies):
     for room_guid, room_topology in room_topologies.items():
         merged_topology = Topology.Merge(layer, room_topology)
         shared_faces = Topology.SharedFaces(Topology.Cells(merged_topology)[0], Topology.Cells(merged_topology)[1])
+        print("Found Touch")
         if shared_faces:
             touching_rooms.append(room_guid)
 

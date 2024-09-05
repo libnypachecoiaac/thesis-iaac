@@ -103,7 +103,7 @@ def main():
     hosts_of_windows_and_doors(ifc_file, ifc_storey)
 
     ### Adjacency of Walls
-    wall_to_wall_connectivity(ifc_file, storey_name)
+    #wall_to_wall_connectivity(ifc_file, storey_name)
 
     print("Data created! Done!")
 
