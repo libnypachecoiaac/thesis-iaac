@@ -210,14 +210,14 @@ def windowinfo_to_csv(ifc_file, ifc_windows, target_storey):
     print("Results have been saved to Output03_RoomToRoom_ByWindows.csv")
 
 # --- Functions for room_bounding_walls_to_csv ---
-def room_bounding_walls_to_csv(ifc_file, target_storey, filtered_spaces):
+def room_bounding_walls_to_csv(ifc_file, filtered_spaces):
     space_to_walls = []
 
     for space in filtered_spaces:
         space_guid = space.GlobalId
         walls = []
-        for rel_space_boundary in ifc_file.by_type("IfcRelSpaceBoundary"):
-            if rel_space_boundary.RelatingSpace == space:
+        for rel_space_boundary in ifc_file.by_type("IfcRelSpaceBoundary") + ifc_file.by_type("IfcRelSpaceBoundary1stLevel") + ifc_file.by_type("IfcRelSpaceBoundary2ndLevel"):
+            if rel_space_boundary.RelatingSpace.GlobalId == space.GlobalId:
                 if rel_space_boundary.RelatedBuildingElement and rel_space_boundary.RelatedBuildingElement.is_a("IfcWall"):
                     wall_guid = rel_space_boundary.RelatedBuildingElement.GlobalId
                     walls.append(wall_guid)
