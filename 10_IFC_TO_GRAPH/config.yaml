@@ -1,5 +1,8 @@
-ifc_file: "Hus28_test.ifc"
-storey_name: "Plan 11"
+ifc_file: "0301.ifc"
+storey_name: "Entreplan 10"
 uri: "bolt://localhost:7687"
 username: "neo4j"
 password: "iaacthesis"
+
+# testdbms
+# iaacthesis
