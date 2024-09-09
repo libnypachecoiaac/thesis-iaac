@@ -15,13 +15,9 @@ import csv
 def find_touching_walls(topology1, topology2):
     cells1 = Topology.Cells(topology1)
     cells2 = Topology.Cells(topology2)
-    print(topology1)
-    print(topology2)
 
     for index1, cell1 in enumerate(cells1):
         for index2, cell2 in enumerate(cells2):
-            print(cell1)
-            print(cell2)
             try:
                 # Attempt to merge the cells
                 merged_cell = Topology.Merge(cell1, cell2)
@@ -113,8 +109,49 @@ def rotation_matrix_to_axis_angle(R):
 
     return axis, angle_degrees
 
+def extract_geometry_info_from_shape_aspect(shape_aspect):
+    coordinates_list = []
+    indices_list = []
+    voids_indices_list = []
 
+    # Überprüfen, ob die ShapeAspect eine IfcPolygonalFaceSet enthält
+    for representation in shape_aspect.ShapeRepresentations:
+        if representation.is_a('IfcShapeRepresentation'):
+            for item in representation.Items:
+                if item.is_a('IfcPolygonalFaceSet'):
+                    # IFCCARTESIANPOINTLIST3D (Koordinaten) extrahieren
+                    if hasattr(item, 'Coordinates'):
+                        coordinates = item.Coordinates.CoordList
+                        coordinates_list.extend(coordinates)
+                        print("  IFCCARTESIANPOINTLIST3D (Koordinaten):")
+                        for coord in coordinates:
+                            print(f"    - {coord}")
 
+                    # IFCINDEXEDPOLYGONALFACE (Flächen) und Voids extrahieren
+                    if hasattr(item, 'Faces'):
+                        faces = item.Faces
+                        print("  IFCINDEXEDPOLYGONALFACE (Flächen):")
+                        for face in faces:
+                            if face.is_a('IfcIndexedPolygonalFaceWithVoids'):
+                                indices_list.append(face.CoordIndex)
+                                voids_indices_list.extend(face.InnerCoordIndices)
+                                print(f"    - Outer: {face.CoordIndex}, Voids: {face.InnerCoordIndices}")
+                            else:
+                                indices_list.append(face.CoordIndex)
+                                print(f"    - {face.CoordIndex}")
+    return coordinates_list, indices_list, voids_indices_list
+
+# Funktion zur Bereinigung der Indizes-Liste
+def clean_indices_list(indices_list, voids_indices_list):
+    # Erstelle eine Liste für die bereinigten Indizes
+    cleaned_indices_list = []
+
+    # Iteriere durch die Indizes-Liste und prüfe, ob irgendein Index in der Voids-Liste enthalten ist
+    for indices in indices_list:
+        if not any(index in [void_index for void_tup in voids_indices_list for void_index in void_tup] for index in indices):
+            cleaned_indices_list.append(indices)
+
+    return cleaned_indices_list
 
 # Setup logging
 logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -142,7 +179,7 @@ for wall in ifc_file.by_type("IfcWall"):
             if rel.RelatingStructure == ifc_storey:
                 wall_guids.append(wall.GlobalId)
 
-print("GUIDs von Wänden in Plan 11:", wall_guids)
+print("GUIDs von Wänden in Plan:", wall_guids)
 print(len(wall_guids))
 
 dic_walls = {}
@@ -243,86 +280,109 @@ for wall_guid in wall_guids:
                                 print("No valid OuterCurve or Points found for IFCARBITRARYPROFILEDEFWITHVOIDS")
                         else:
                             print("Profile definition is neither IfcArbitraryClosedProfileDef nor IfcArbitraryProfileDefWithVoids")
+                    
+                        # Output wall  details
+                        #print("----WALL----")
+                        #print("Location (IFCCARTESIANPOINT):", wall_rel_placement)
+                        #print("Axis (IFCDIRECTION):", wall_axis)
+                        #print("RefDirection (IFCCARTESIANPOINT):", wall_ref_direction)
+
+                        #print("----LAYER----")
+                        #print("Extrusion Depth:", layer_extrusion_depth)
+                        #print("Material", material)
+                        #print("Location (IFCCARTESIANPOINT):", layer_location.Coordinates)
+                        #print("Axis (IFCDIRECTION):", layer_axis_direction)
+                        #print("RefDirection (IFCDIRECTION):", layer_ref_direction) 
+                        #print("Extruded Direction (IFCDIRECTION):", layer_extruded_direction)
+
+                        # Output the coordinates of the vertices defining the profile
+                        #print("----VERTICES----")
+                        #for point in points:
+                        #    print(point)
+
+                        ### Align Element in Local CoordSystem
+
+                        # Apply the rotation matrix
+                        rotation_matrix = create_rotation_matrix(layer_axis_direction, layer_ref_direction)
+
+                        # Ensure points are rotated and translated 
+                        local_points = []
+                        for point in points:
+                            point_3d = np.array([point[0], point[1], 0.0])  # Embed 2D point into 3D
+                            rotated_point = rotation_matrix.dot(point_3d)   # Apply the rotation matrix
+                            translated_point = rotated_point + layer_location.Coordinates  # Translate based on layer location
+                            local_points.append(translated_point)
+
+                        # Transform Extrusion Direction
+                        extruded_direction_vector = np.array(layer_extruded_direction)
+                        transformed_extruded_direction = np.dot(rotation_matrix, extruded_direction_vector)
+
+                        #print("Calculated local points after rotation and translation:")
+                        #for p in local_points:
+                        #    print(p)
+
+                        #print("Transformierter Extrusionsvektor:")
+                        #print(transformed_extruded_direction)
+
+                        ### Build Topology
+
+                        # Convert the calculated points to vertices
+                        vertices = [Vertex.ByCoordinates(x, y, z) for x, y, z in local_points]
+
+                        # Create a face using the vertices
+                        face = Face.ByVertices(vertices)
+                        face_normal = Face.Normal(face)
+
+                        # Output to confirm the face and its normal vector have been created
+                        #print(face)
+                        #print(face_normal)
+
+                        # Normalize the face normal and extrusion direction to ensure correct dot product calculation
+                        face_normal = face_normal / np.linalg.norm(face_normal)
+                        extrusion_direction = np.array(transformed_extruded_direction)
+                        extrusion_direction = extrusion_direction / np.linalg.norm(extrusion_direction)
+
+                        # Calculate the dot product between the face normal and the extrusion direction
+                        dot_product = np.dot(face_normal, extrusion_direction)
+
+                        # Determine if the face extrusion needs to be reversed based on the dot product
+                        # Adjustment of threshold to handle floating-point precision issues
+                        reverse = dot_product < -0.9999
+
+                        #print("Face Normal:", face_normal)
+                        #print("Extrusion Direction:", extrusion_direction)
+                        #print("Dot Product:", dot_product)
+                        #print("Reverse:", reverse)
+
+                        # Create cell by extruding the face with specified thickness
+                        cell = Cell.ByThickenedFace(face, thickness=layer_extrusion_depth, bothSides=False, reverse=reverse)
+
+
+                    elif item.is_a('IFCPOLYGONALFACESET'):
+                        # IFCPOLYGONALFACESET: Verwende unseren bestehenden Code
+                        coordinates_list, indices_list, voids_indices_list = extract_geometry_info_from_shape_aspect(shape_aspect)
+                        cleaned_indices_list = clean_indices_list(indices_list, voids_indices_list)
+
+                        # Erstellen der Vertex-Liste (Punkte) aus den extrahierten Koordinaten
+                        vertices = []
+                        for coord in coordinates_list:
+                            vertex = Vertex.ByCoordinates(x=coord[0], y=coord[1], z=coord[2])
+                            vertices.append(vertex)
+
+                        # Erstellen der Faces (Flächen) aus den bereinigten Indizes
+                        faces = []
+                        for face_indices in cleaned_indices_list:
+                            face_vertices = [vertices[i-1] for i in face_indices]  # Die Indizes sind 1-basiert, Python verwendet jedoch 0-basierte Indizes
+                            face = Face.ByVertices(face_vertices)
+                            faces.append(face)
+
+                        # Erstellen der Cell (Volumen) aus den Faces
+                        cell = Cell.ByFaces(faces)
+
                     else:
-                        print("Item is not IFCEXTRUDEDAREASOLID")
+                        print("Unknown Representation")
             else:
                 print("Shape aspect does not have correct IFCSHAPEREPRESENTATION")
-
-        # Output wall  details
-        print("----WALL----")
-        print("Location (IFCCARTESIANPOINT):", wall_rel_placement)
-        print("Axis (IFCDIRECTION):", wall_axis)
-        print("RefDirection (IFCCARTESIANPOINT):", wall_ref_direction)
-
-        print("----LAYER----")
-        print("Extrusion Depth:", layer_extrusion_depth)
-        print("Material", material)
-        print("Location (IFCCARTESIANPOINT):", layer_location.Coordinates)
-        print("Axis (IFCDIRECTION):", layer_axis_direction)
-        print("RefDirection (IFCDIRECTION):", layer_ref_direction) 
-        print("Extruded Direction (IFCDIRECTION):", layer_extruded_direction)
-
-        # Output the coordinates of the vertices defining the profile
-        print("----VERTICES----")
-        for point in points:
-            print(point)
-
-        ### Align Element in Local CoordSystem
-
-        # Apply the rotation matrix
-        rotation_matrix = create_rotation_matrix(layer_axis_direction, layer_ref_direction)
-
-        # Ensure points are rotated and translated 
-        local_points = []
-        for point in points:
-            point_3d = np.array([point[0], point[1], 0.0])  # Embed 2D point into 3D
-            rotated_point = rotation_matrix.dot(point_3d)   # Apply the rotation matrix
-            translated_point = rotated_point + layer_location.Coordinates  # Translate based on layer location
-            local_points.append(translated_point)
-
-        # Transform Extrusion Direction
-        extruded_direction_vector = np.array(layer_extruded_direction)
-        transformed_extruded_direction = np.dot(rotation_matrix, extruded_direction_vector)
-
-        print("Calculated local points after rotation and translation:")
-        for p in local_points:
-            print(p)
-
-        print("Transformierter Extrusionsvektor:")
-        print(transformed_extruded_direction)
-
-        ### Build Topology
-
-        # Convert the calculated points to vertices
-        vertices = [Vertex.ByCoordinates(x, y, z) for x, y, z in local_points]
-
-        # Create a face using the vertices
-        face = Face.ByVertices(vertices)
-        face_normal = Face.Normal(face)
-
-        # Output to confirm the face and its normal vector have been created
-        print(face)
-        print(face_normal)
-
-        # Normalize the face normal and extrusion direction to ensure correct dot product calculation
-        face_normal = face_normal / np.linalg.norm(face_normal)
-        extrusion_direction = np.array(transformed_extruded_direction)
-        extrusion_direction = extrusion_direction / np.linalg.norm(extrusion_direction)
-
-        # Calculate the dot product between the face normal and the extrusion direction
-        dot_product = np.dot(face_normal, extrusion_direction)
-
-        # Determine if the face extrusion needs to be reversed based on the dot product
-        # Adjustment of threshold to handle floating-point precision issues
-        reverse = dot_product < -0.9999
-
-        print("Face Normal:", face_normal)
-        print("Extrusion Direction:", extrusion_direction)
-        print("Dot Product:", dot_product)
-        print("Reverse:", reverse)
-
-        # Create cell by extruding the face with specified thickness
-        cell = Cell.ByThickenedFace(face, thickness=layer_extrusion_depth, bothSides=False, reverse=reverse)
 
         # Output to confirm that the cell has been created
         print("Cell created:", cell)

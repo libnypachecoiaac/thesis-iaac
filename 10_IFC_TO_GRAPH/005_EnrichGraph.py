@@ -89,14 +89,56 @@ def rotation_matrix_to_axis_angle(R):
 
     return axis, angle_degrees
 
+def extract_geometry_info_from_shape_aspect(shape_aspect):
+    coordinates_list = []
+    indices_list = []
+    voids_indices_list = []
+
+    # Überprüfen, ob die ShapeAspect eine IfcPolygonalFaceSet enthält
+    for representation in shape_aspect.ShapeRepresentations:
+        if representation.is_a('IfcShapeRepresentation'):
+            for item in representation.Items:
+                if item.is_a('IfcPolygonalFaceSet'):
+                    # IFCCARTESIANPOINTLIST3D (Koordinaten) extrahieren
+                    if hasattr(item, 'Coordinates'):
+                        coordinates = item.Coordinates.CoordList
+                        coordinates_list.extend(coordinates)
+                        print("  IFCCARTESIANPOINTLIST3D (Koordinaten):")
+                        for coord in coordinates:
+                            print(f"    - {coord}")
+
+                    # IFCINDEXEDPOLYGONALFACE (Flächen) und Voids extrahieren
+                    if hasattr(item, 'Faces'):
+                        faces = item.Faces
+                        print("  IFCINDEXEDPOLYGONALFACE (Flächen):")
+                        for face in faces:
+                            if face.is_a('IfcIndexedPolygonalFaceWithVoids'):
+                                indices_list.append(face.CoordIndex)
+                                voids_indices_list.extend(face.InnerCoordIndices)
+                                print(f"    - Outer: {face.CoordIndex}, Voids: {face.InnerCoordIndices}")
+                            else:
+                                indices_list.append(face.CoordIndex)
+                                print(f"    - {face.CoordIndex}")
+    return coordinates_list, indices_list, voids_indices_list
+
+# Funktion zur Bereinigung der Indizes-Liste
+def clean_indices_list(indices_list, voids_indices_list):
+    # Erstelle eine Liste für die bereinigten Indizes
+    cleaned_indices_list = []
+
+    # Iteriere durch die Indizes-Liste und prüfe, ob irgendein Index in der Voids-Liste enthalten ist
+    for indices in indices_list:
+        if not any(index in [void_index for void_tup in voids_indices_list for void_index in void_tup] for index in indices):
+            cleaned_indices_list.append(indices)
+
+    return cleaned_indices_list
+
 dic_walls = {}
 topo_walls = []
 i = 1
 
 for wall_guid in wall_guids:
-    print(f"Reconstructing Wall {i}/{len(wall_guids)}")
-
-    logging.debug("IFC GUID of Wall: %s", wall_guid)
+    print("IFC GUID of Wall:", wall_guid)
     wall = ifc_file.by_guid(wall_guid)
 
     ### Gather Informations of Wall
@@ -115,15 +157,15 @@ for wall_guid in wall_guids:
     wall_axis = axis_placement.Axis.DirectionRatios if axis_placement.Axis else (0.0, 0.0, 1.0)  # Default to Z-axis
     wall_ref_direction = axis_placement.RefDirection.DirectionRatios if axis_placement.RefDirection else (1.0, 0.0, 0.0)  # Default to X-axis
 
-    logging.debug(f"Relative Placement of IfcWall: {wall_rel_placement}")
-    logging.debug(f"Axis (Z-axis): {wall_axis}")
-    logging.debug(f"RefDirection (X-axis): {wall_ref_direction}")
+    print(f"Relative Placement of IfcWall: {wall_rel_placement}")
+    print(f"Axis (Z-axis): {wall_axis}")
+    print(f"RefDirection (X-axis): {wall_ref_direction}")
 
     ### Gather Informations of Layers
 
     # Retrieve the product definition shape of wall (which contains geometric representations)
     product_definition_shape = wall.Representation
-    logging.debug("IFCPRODUCTDEFINITIONSHAPE found: %s", product_definition_shape)
+    print("IFCPRODUCTDEFINITIONSHAPE found:", product_definition_shape)
 
     shape_aspects = []
 
@@ -131,11 +173,11 @@ for wall_guid in wall_guids:
     if product_definition_shape and hasattr(product_definition_shape, 'HasShapeAspects'):
         shape_aspects = product_definition_shape.HasShapeAspects
         if shape_aspects:
-            logging.debug(f"Found {len(shape_aspects)} Shape Aspects")
+            print(f"Found {len(shape_aspects)} Shape Aspects")
         else:
-            logging.debug("HasShapeAspects exists but is empty.")
+            print("HasShapeAspects exists but is empty.")
     else:
-        logging.debug("No IFCSHAPEASPECTs found or 'HasShapeAspects' does not exist.")
+        print("No IFCSHAPEASPECTs found or 'HasShapeAspects' does not exist.")
 
     cells = []
 
@@ -160,7 +202,7 @@ for wall_guid in wall_guids:
                             layer_ref_direction = layer_axis_placement.RefDirection.DirectionRatios if layer_axis_placement.RefDirection else (1.0, 0.0, 0.0)
                             layer_axis_direction = layer_axis_placement.Axis.DirectionRatios if layer_axis_placement.Axis else (0.0, 0.0, 1.0)
                         else:
-                            logging.debug("No valid IFCAXIS2PLACEMENT3D found.")
+                            print("No valid IFCAXIS2PLACEMENT3D found.")
 
                         # Get extrusion direction
                         layer_extruded_direction = item.ExtrudedDirection.DirectionRatios
@@ -168,7 +210,7 @@ for wall_guid in wall_guids:
                         # Get the profile definition type and handle specific profile types
                         profile = item.SweptArea
                         layer_profile_type = profile.is_a()
-                        logging.debug(f"Profile Type: {layer_profile_type}")
+                        print(f"Profile Type: {layer_profile_type}")
 
                         if layer_profile_type == 'IfcArbitraryClosedProfileDef':
                             # Retrieve points for the outer curve of the profile
@@ -187,92 +229,115 @@ for wall_guid in wall_guids:
                                     point_list_2d = indexed_polycurve.Points
                                     points = point_list_2d.CoordList
                             else:
-                                logging.debug("No valid OuterCurve or Points found for IFCARBITRARYPROFILEDEFWITHVOIDS")
+                                print("No valid OuterCurve or Points found for IFCARBITRARYPROFILEDEFWITHVOIDS")
                         else:
-                            logging.debug("Profile definition is neither IfcArbitraryClosedProfileDef nor IfcArbitraryProfileDefWithVoids")
+                            print("Profile definition is neither IfcArbitraryClosedProfileDef nor IfcArbitraryProfileDefWithVoids")
+                    
+                        # Output wall  details
+                        #print("----WALL----")
+                        #print("Location (IFCCARTESIANPOINT):", wall_rel_placement)
+                        #print("Axis (IFCDIRECTION):", wall_axis)
+                        #print("RefDirection (IFCCARTESIANPOINT):", wall_ref_direction)
+
+                        #print("----LAYER----")
+                        #print("Extrusion Depth:", layer_extrusion_depth)
+                        #print("Material", material)
+                        #print("Location (IFCCARTESIANPOINT):", layer_location.Coordinates)
+                        #print("Axis (IFCDIRECTION):", layer_axis_direction)
+                        #print("RefDirection (IFCDIRECTION):", layer_ref_direction) 
+                        #print("Extruded Direction (IFCDIRECTION):", layer_extruded_direction)
+
+                        # Output the coordinates of the vertices defining the profile
+                        #print("----VERTICES----")
+                        #for point in points:
+                        #    print(point)
+
+                        ### Align Element in Local CoordSystem
+
+                        # Apply the rotation matrix
+                        rotation_matrix = create_rotation_matrix(layer_axis_direction, layer_ref_direction)
+
+                        # Ensure points are rotated and translated 
+                        local_points = []
+                        for point in points:
+                            point_3d = np.array([point[0], point[1], 0.0])  # Embed 2D point into 3D
+                            rotated_point = rotation_matrix.dot(point_3d)   # Apply the rotation matrix
+                            translated_point = rotated_point + layer_location.Coordinates  # Translate based on layer location
+                            local_points.append(translated_point)
+
+                        # Transform Extrusion Direction
+                        extruded_direction_vector = np.array(layer_extruded_direction)
+                        transformed_extruded_direction = np.dot(rotation_matrix, extruded_direction_vector)
+
+                        #print("Calculated local points after rotation and translation:")
+                        #for p in local_points:
+                        #    print(p)
+
+                        #print("Transformierter Extrusionsvektor:")
+                        #print(transformed_extruded_direction)
+
+                        ### Build Topology
+
+                        # Convert the calculated points to vertices
+                        vertices = [Vertex.ByCoordinates(x, y, z) for x, y, z in local_points]
+
+                        # Create a face using the vertices
+                        face = Face.ByVertices(vertices)
+                        face_normal = Face.Normal(face)
+
+                        # Output to confirm the face and its normal vector have been created
+                        #print(face)
+                        #print(face_normal)
+
+                        # Normalize the face normal and extrusion direction to ensure correct dot product calculation
+                        face_normal = face_normal / np.linalg.norm(face_normal)
+                        extrusion_direction = np.array(transformed_extruded_direction)
+                        extrusion_direction = extrusion_direction / np.linalg.norm(extrusion_direction)
+
+                        # Calculate the dot product between the face normal and the extrusion direction
+                        dot_product = np.dot(face_normal, extrusion_direction)
+
+                        # Determine if the face extrusion needs to be reversed based on the dot product
+                        # Adjustment of threshold to handle floating-point precision issues
+                        reverse = dot_product < -0.9999
+
+                        #print("Face Normal:", face_normal)
+                        #print("Extrusion Direction:", extrusion_direction)
+                        #print("Dot Product:", dot_product)
+                        #print("Reverse:", reverse)
+
+                        # Create cell by extruding the face with specified thickness
+                        cell = Cell.ByThickenedFace(face, thickness=layer_extrusion_depth, bothSides=False, reverse=reverse)
+
+
+                    elif item.is_a('IFCPOLYGONALFACESET'):
+                        # IFCPOLYGONALFACESET: Verwende unseren bestehenden Code
+                        coordinates_list, indices_list, voids_indices_list = extract_geometry_info_from_shape_aspect(shape_aspect)
+                        cleaned_indices_list = clean_indices_list(indices_list, voids_indices_list)
+
+                        # Erstellen der Vertex-Liste (Punkte) aus den extrahierten Koordinaten
+                        vertices = []
+                        for coord in coordinates_list:
+                            vertex = Vertex.ByCoordinates(x=coord[0], y=coord[1], z=coord[2])
+                            vertices.append(vertex)
+
+                        # Erstellen der Faces (Flächen) aus den bereinigten Indizes
+                        faces = []
+                        for face_indices in cleaned_indices_list:
+                            face_vertices = [vertices[i-1] for i in face_indices]  # Die Indizes sind 1-basiert, Python verwendet jedoch 0-basierte Indizes
+                            face = Face.ByVertices(face_vertices)
+                            faces.append(face)
+
+                        # Erstellen der Cell (Volumen) aus den Faces
+                        cell = Cell.ByFaces(faces)
+
                     else:
-                        logging.debug("Item is not IFCEXTRUDEDAREASOLID")
+                        print("Unknown Representation")
             else:
-                logging.debug("Shape aspect does not have correct IFCSHAPEREPRESENTATION")
-
-        # Output wall  details
-        logging.debug("----WALL----")
-        logging.debug("Location (IFCCARTESIANPOINT): %s", wall_rel_placement)
-        logging.debug("Axis (IFCDIRECTION): %s", wall_axis)
-        logging.debug("RefDirection (IFCCARTESIANPOINT): %s", wall_ref_direction)
-
-        logging.debug("----LAYER----")
-        logging.debug("Extrusion Depth: %s", layer_extrusion_depth)
-        logging.debug("Material: %s", material)
-        logging.debug("Location (IFCCARTESIANPOINT): %s", layer_location.Coordinates)
-        logging.debug("Axis (IFCDIRECTION): %s", layer_axis_direction)
-        logging.debug("RefDirection (IFCDIRECTION): %s", layer_ref_direction) 
-        logging.debug("Extruded Direction (IFCDIRECTION): %s", layer_extruded_direction)
-
-        # Output the coordinates of the vertices defining the profile
-        logging.debug("----VERTICES----")
-        for point in points:
-            logging.debug(point)
-
-        ### Align Element in Local CoordSystem
-
-        # Apply the rotation matrix
-        rotation_matrix = create_rotation_matrix(layer_axis_direction, layer_ref_direction)
-
-        # Ensure points are rotated and translated 
-        local_points = []
-        for point in points:
-            point_3d = np.array([point[0], point[1], 0.0])  # Embed 2D point into 3D
-            rotated_point = rotation_matrix.dot(point_3d)   # Apply the rotation matrix
-            translated_point = rotated_point + layer_location.Coordinates  # Translate based on layer location
-            local_points.append(translated_point)
-
-        # Transform Extrusion Direction
-        extruded_direction_vector = np.array(layer_extruded_direction)
-        transformed_extruded_direction = np.dot(rotation_matrix, extruded_direction_vector)
-
-        logging.debug("Calculated local points after rotation and translation:")
-        for p in local_points:
-            logging.debug(p)
-
-        logging.debug("Transformierter Extrusionsvektor:")
-        logging.debug(transformed_extruded_direction)
-
-        ### Build Topology
-
-        # Convert the calculated points to vertices
-        vertices = [Vertex.ByCoordinates(x, y, z) for x, y, z in local_points]
-
-        # Create a face using the vertices
-        face = Face.ByVertices(vertices)
-        face_normal = Face.Normal(face)
-
-        # Output to confirm the face and its normal vector have been created
-        logging.debug(face)
-        logging.debug(face_normal)
-
-        # Normalize the face normal and extrusion direction to ensure correct dot product calculation
-        face_normal = face_normal / np.linalg.norm(face_normal)
-        extrusion_direction = np.array(transformed_extruded_direction)
-        extrusion_direction = extrusion_direction / np.linalg.norm(extrusion_direction)
-
-        # Calculate the dot product between the face normal and the extrusion direction
-        dot_product = np.dot(face_normal, extrusion_direction)
-
-        # Determine if the face extrusion needs to be reversed based on the dot product
-        # Adjustment of threshold to handle floating-point precision issues
-        reverse = dot_product < -0.9999
-
-        logging.debug("Face Normal: %s", face_normal)
-        logging.debug("Extrusion Direction: %s", extrusion_direction)
-        logging.debug("Dot Product: %s", dot_product)
-        logging.debug("Reverse: %s", reverse)
-
-        # Create cell by extruding the face with specified thickness
-        cell = Cell.ByThickenedFace(face, thickness=layer_extrusion_depth, bothSides=False, reverse=reverse)
+                print("Shape aspect does not have correct IFCSHAPEREPRESENTATION")
 
         # Output to confirm that the cell has been created
-        logging.debug("Cell created: %s", cell)
+        print("Cell created:", cell)
 
         Topology.AddDictionary(cell,Dictionary.ByKeyValue("material",material))
 
@@ -368,10 +433,25 @@ for item in topo_spaces:
 
 print("--- Reconstructing Spaces Done ---")
 
-print("--- Starting to Write Relations to Database ---")
+def get_rooms_contained_in_wall(wall_guid, uri, username, password):
+    driver = GraphDatabase.driver(uri, auth=(username, password))
+    room_guids = []
+    
+    with driver.session() as session:
+        result = session.run(
+            """
+            MATCH (wall:Wall {GlobalId: $wall_guid})-[:`ContainedIn`]-(room:Room)
+            RETURN room.GlobalId AS room_guid
+            """, 
+            wall_guid=wall_guid
+        )
+        for record in result:
+            room_guids.append(record["room_guid"])
 
-# Initialisiere die Datenbankverbindung
-driver = GraphDatabase.driver(uri, auth=(username, password))
+    driver.close()
+    print("Verbunden mit Raum:", room_guids)
+
+    return room_guids
 
 def create_material_node(tx, material_name, unique_id):
     # Erstelle den Material-Node mit einem eindeutigen Identifikator
@@ -383,22 +463,6 @@ def scale_topology_to_meters(topology):
     scaled_topology = Topology.Scale(topology, origin=(0, 0, 0), x=0.001, y=0.001, z=0.001)
     return scaled_topology
 
-def find_touching_rooms(layer, room_topologies):
-    print(layer)
-    print(room_topologies)
-    # Diese Funktion prüft, ob eine Schicht (layer) einen der Räume (room_topologies) berührt.
-    touching_rooms = []
-    cells_layer = Topology.Cells(layer)  # Holen Sie die Zellen der Schicht
-
-    for room_guid, room_topology in room_topologies.items():
-        merged_topology = Topology.Merge(layer, room_topology)
-        shared_faces = Topology.SharedFaces(Topology.Cells(merged_topology)[0], Topology.Cells(merged_topology)[1])
-        print("Found Touch")
-        if shared_faces:
-            touching_rooms.append(room_guid)
-
-    return touching_rooms
-
 def create_edge(tx, start_id, end_id, start_label, end_label, start_id_key="GlobalId", end_id_key="unique_id", relationship_type="ConsistsOf"):
     query = f"""
     MATCH (start:{start_label} {{{start_id_key}: $start_id}})
@@ -407,24 +471,73 @@ def create_edge(tx, start_id, end_id, start_label, end_label, start_id_key="Glob
     """
     try:
         result = tx.run(query, start_id=start_id, end_id=end_id)
-        # if result and result._summary.counters.contains_updates:
-        #     print(f"Edge '{relationship_type}' created between {start_label} '{start_id}' and {end_label} '{end_id}'.")
-        # else:
-        #     print(f"Failed to create edge '{relationship_type}' between {start_label} '{start_id}' and {end_label} '{end_id}'. Check if nodes exist.")
     except Exception as e:
         print(f"Error while creating edge '{relationship_type}' between {start_label} '{start_id}' and {end_label} '{end_id}': {e}")
 
-# Beispiel für die Verwendung von execute_write
+def find_touching_rooms(layer, relevant_room_topologies):
+    touching_rooms = []
+    cells_layer = Topology.Cells(layer)
+
+    for room_guid, room_topology in relevant_room_topologies.items():
+        print(f"Checking room: {room_guid}")
+        try:
+            merged_topology = Topology.Merge(layer, room_topology)
+            shared_faces = Topology.SharedFaces(Topology.Cells(merged_topology)[0], Topology.Cells(merged_topology)[1])
+            
+            if shared_faces:
+                print(f"Found touch between layer and room {room_guid}")
+                touching_rooms.append(room_guid)
+        
+        except Exception as e:
+            print(f"Error while merging or finding shared faces for room {room_guid}: {e}")
+
+    return touching_rooms
+
+def adjust_room_to_wall_z_level(wall_layer, room_topology):
+    """
+    Verschiebt die Raum-Topologie in der Z-Richtung so, dass die Unterkanten der Wand- und Raum-Topologien übereinstimmen.
+    
+    Parameters:
+    wall_layer: Topologie der Wand (z.B. die erste Schicht der Wand)
+    room_topology: Topologie des Raums, die verschoben werden soll
+
+    Returns:
+    Verschobene Raum-Topologie, sodass die Z-Ebenen übereinstimmen.
+    """
+    # Berechne die Z-Werte der Wand-Topologie
+    wall_vertices = Cell.Vertices(wall_layer)
+    wall_min_z = min(Vertex.Z(vertex) for vertex in wall_vertices)
+
+    # Berechne die Z-Werte der Raum-Topologie
+    room_vertices = Cell.Vertices(room_topology)
+    room_min_z = min(Vertex.Z(vertex) for vertex in room_vertices)
+
+    # Berechne den notwendigen Versatz in der Z-Richtung
+    z_offset = wall_min_z - room_min_z
+
+    # Verschiebe die Raum-Topologie um den berechneten Versatz in Z-Richtung
+    adjusted_room_topology = Topology.Translate(room_topology, z=z_offset)
+
+    return adjusted_room_topology
+
+# Initialisiere die Datenbankverbindung
+driver = GraphDatabase.driver(uri, auth=(username, password))
+
 with driver.session() as session:
     i = 0
     for wall_guid, layers in dic_walls.items():
-        print(f"{i}")
+        print(f"Wall {i} - {wall_guid}")
         previous_unique_id = None
 
         # Skaliere die gesamte Topologie der Wände in Meter
         scaled_layers = [scale_topology_to_meters(layer) for layer in layers]
 
-        # Iteriere durch jede Schicht (Cell) in der Liste der skalierten Schichten für die Wand
+        # Räume abrufen, die in der Wand enthalten sind
+        relevant_rooms = get_rooms_contained_in_wall(wall_guid, uri, username, password)
+
+        # Räume auf relevante Topologien reduzieren
+        relevant_room_topologies = {room_guid: dic_spaces[room_guid] for room_guid in relevant_rooms if room_guid in dic_spaces}
+
         for index, layer in enumerate(scaled_layers):
             layer_dict = Topology.Dictionary(layer)
             material_name = Dictionary.ValueAtKey(layer_dict, "material")
@@ -448,13 +561,15 @@ with driver.session() as session:
 
                 # Überprüfe, ob die Schicht Räume berührt (nur für die äußersten Schichten relevant)
                 if index == 0 or index == len(layers) - 1:
-                    touching_rooms = find_touching_rooms(layer, dic_spaces)
+                    # Räume an die gleiche Z-Ebene anpassen
+                    adjusted_room_topologies = {room_guid: adjust_room_to_wall_z_level(layer, room_topology) 
+                                                for room_guid, room_topology in relevant_room_topologies.items()}
+                    
+                    touching_rooms = find_touching_rooms(layer, adjusted_room_topologies)
+                    print("Berührende Räume:", touching_rooms)
                     for room_guid in touching_rooms:
                         # Erstelle die 'IsFacing' Beziehung
                         session.execute_write(create_edge, unique_id, room_guid, "Material", "Room", "unique_id", "GlobalId", "IsFacing")
             else:
                 print(f"Materialname fehlt für eine Schicht in Wand {wall_guid}. Überspringe diese Schicht.")
         i += 1
-
-# Schließe die Verbindung zur Datenbank
-driver.close()

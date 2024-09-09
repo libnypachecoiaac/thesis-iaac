@@ -35,22 +35,30 @@ def filter_ifcspaces_by_storey(spaces, storey_name):
 
 def filter_spaces_by_name(spaces):
     # For 0301
-    if True:
-        exclude_pattern = re.compile(r'(-10$|^Area:)')
-        filtered_spaces = []
+    # if True:
+    #     exclude_pattern = re.compile(r'(-10$|^Area:)')
+    #     filtered_spaces = []
         
-        for space in spaces:
-            if not exclude_pattern.search(space.Name):
-                filtered_spaces.append(space)
-        return filtered_spaces
+    #     for space in spaces:
+    #         if not exclude_pattern.search(space.Name):
+    #             filtered_spaces.append(space)
+    #     return filtered_spaces
 
-    # # For HUS28
+    # For HUS28
     # digit_pattern = re.compile(r'^\d{1,5}$')
     # filtered_spaces = []
     # for space in spaces:
     #     if digit_pattern.match(space.Name):
     #         filtered_spaces.append(space)
     # return filtered_spaces
+
+    # For 3501
+    exclude_pattern = re.compile(r'^Area:|[-]')
+    filtered_spaces = []
+    for space in spaces:
+        if not exclude_pattern.search(space.Name):
+            filtered_spaces.append(space)
+    return filtered_spaces
 
 
 

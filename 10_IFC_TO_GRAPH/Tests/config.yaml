@@ -1,5 +1,5 @@
-ifc_file: "Hus28_test.ifc"
-storey_name: "Plan 11"
+ifc_file: "2601.ifc"
+storey_name: "PLAN 13, TRH 1"
 uri: "bolt://localhost:7687"
 username: "neo4j"
 password: "testdbms"
