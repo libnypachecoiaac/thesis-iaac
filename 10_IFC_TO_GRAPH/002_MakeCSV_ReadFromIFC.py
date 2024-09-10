@@ -60,7 +60,26 @@ def filter_spaces_by_name(spaces):
             filtered_spaces.append(space)
     return filtered_spaces
 
-
+def filter_spaces_by_category(spaces, category_value="Rooms"):
+    filtered_spaces = []
+    
+    for space in spaces:
+        # Get the property sets of the space
+        property_sets = space.IsDefinedBy
+        
+        # Iterate through the property sets and find the 'Other' set with Category
+        for prop_set in property_sets:
+            if hasattr(prop_set, "RelatingPropertyDefinition"):
+                props = prop_set.RelatingPropertyDefinition
+                
+                # Check if it's a property set and contains the 'Category' property
+                if hasattr(props, "HasProperties"):
+                    for prop in props.HasProperties:
+                        if prop.Name == "Category" and prop.NominalValue.wrappedValue == category_value:
+                            filtered_spaces.append(space)
+                            break
+                            
+    return filtered_spaces
 
 # Setup logging
 logging.basicConfig(filename='debug.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -86,13 +105,17 @@ ifc_storey = find_ifc_storey(ifc_file, storey_name)
 ifc_spaces = filter_ifcspaces_by_storey(ifc_spaces, storey_name)
 print(f"Amount of IfcSpaces in specified storey'{storey_name}': {len(ifc_spaces)}")
 
-# Further filter spaces by names containing only digits (1-5 digits)
-ifc_spaces = filter_spaces_by_name(ifc_spaces)
-print(f"Number of IfcSpaces with valid names: {len(ifc_spaces)}")
+# # Further filter spaces by names containing only digits (1-5 digits)
+# ifc_spaces = filter_spaces_by_name(ifc_spaces)
+# print(f"Number of IfcSpaces with valid names: {len(ifc_spaces)}")
 
-# Filter spaces by the specified storey name
-spaces_in_storey = filter_ifcspaces_by_storey(ifc_spaces, storey_name)
-print(f"Number of IfcSpaces matching storey '{storey_name}': {len(spaces_in_storey)}")
+# Filter Spaces by category "Rooms"
+ifc_spaces = filter_spaces_by_category(ifc_spaces, "Rooms")
+print(f"Number of IfcSpaces with category 'Rooms': {len(ifc_spaces)}")
+
+# # Filter spaces by the specified storey name
+# spaces_in_storey = filter_ifcspaces_by_storey(ifc_spaces, storey_name)
+# print(f"Number of IfcSpaces matching storey '{storey_name}': {len(spaces_in_storey)}")
 
 # Find all IfcDoors
 all_doors = ifc_file.by_type("IfcDoor")
@@ -109,7 +132,7 @@ windowinfo_to_csv(ifc_file, all_windows, ifc_storey)
 ### Connectivity between Spaces and Walls
 
 # Extract adjacent Walls to Rooms from IfcRelation
-room_bounding_walls_to_csv(ifc_file, spaces_in_storey)
+room_bounding_walls_to_csv(ifc_file, ifc_spaces)
 
 ### Host element of Windows and Doors
 hosts_of_windows_and_doors(ifc_file, ifc_storey)

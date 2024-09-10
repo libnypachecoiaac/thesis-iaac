@@ -20,33 +20,26 @@ def filter_ifcspaces_by_storey(spaces, storey_name):
                     break
     return filtered_spaces
 
-def filter_spaces_by_name(spaces):
-    # For 0301
-    # if True:
-    #     exclude_pattern = re.compile(r'(-10$|^Area:)')
-    #     filtered_spaces = []
-        
-    #     for space in spaces:
-    #         if not exclude_pattern.search(space.Name):
-    #             filtered_spaces.append(space)
-    #     return filtered_spaces
-
-    # For HUS28
-    # digit_pattern = re.compile(r'^\d{1,5}$')
-    # filtered_spaces = []
-    # for space in spaces:
-    #     if digit_pattern.match(space.Name):
-    #         filtered_spaces.append(space)
-    # return filtered_spaces
-
-    # For 3501
-    exclude_pattern = re.compile(r'^Area:|[-]')
+def filter_spaces_by_category(spaces, category_value="Rooms"):
     filtered_spaces = []
+    
     for space in spaces:
-        if not exclude_pattern.search(space.Name):
-            filtered_spaces.append(space)
+        # Get the property sets of the space
+        property_sets = space.IsDefinedBy
+        
+        # Iterate through the property sets and find the 'Other' set with Category
+        for prop_set in property_sets:
+            if hasattr(prop_set, "RelatingPropertyDefinition"):
+                props = prop_set.RelatingPropertyDefinition
+                
+                # Check if it's a property set and contains the 'Category' property
+                if hasattr(props, "HasProperties"):
+                    for prop in props.HasProperties:
+                        if prop.Name == "Category" and prop.NominalValue.wrappedValue == category_value:
+                            filtered_spaces.append(space)
+                            break
+                            
     return filtered_spaces
-
 
 def get_guids_of_spaces(spaces):
     guids = []
@@ -130,9 +123,9 @@ print(f"Amount of all IfcSpaces: {len(ifc_spaces)} ")
 ifc_spaces = filter_ifcspaces_by_storey(ifc_spaces, storey_name)
 print(f"Amount of IfcSpaces in specified storey'{storey_name}': {len(ifc_spaces)}")
 
-# Further filter spaces by names containing only digits (1-5 digits)
-ifc_spaces = filter_spaces_by_name(ifc_spaces)
-print(f"Number of IfcSpaces with valid names: {len(ifc_spaces)}")
+# Filter Spaces by category "Rooms"
+ifc_spaces = filter_spaces_by_category(ifc_spaces, "Rooms")
+print(f"Number of IfcSpaces with category 'Rooms': {len(ifc_spaces)}")
 
 # Get GUIDs of filtered IfcSpaces
 ifc_space_guids = get_guids_of_spaces(ifc_spaces)
@@ -346,14 +339,31 @@ print("-- Checking for Adjacency of Rooms now --")
 
 touching_cells = {}
 
+# def cells_share_face(cell1, cell2):
+#     # Merge the cells into the same CellComplex structure
+#     merged = Topology.Merge(topologyA=cell1, topologyB=cell2)
+#     # Get the merged cells from the merged topology
+#     merged_cells = Topology.Cells(merged)
+#     # Check if they share any faces
+#     shared_faces = Topology.SharedFaces(merged_cells[0], merged_cells[1])
+#     return len(shared_faces) > 0
+
 def cells_share_face(cell1, cell2):
     # Merge the cells into the same CellComplex structure
     merged = Topology.Merge(topologyA=cell1, topologyB=cell2)
+    
     # Get the merged cells from the merged topology
     merged_cells = Topology.Cells(merged)
+    
+    # Check if there are enough merged cells
+    if len(merged_cells) < 2:
+        logging.debug(f"Not enough merged cells found: {len(merged_cells)}")
+        return False
+    
     # Check if they share any faces
     shared_faces = Topology.SharedFaces(merged_cells[0], merged_cells[1])
     return len(shared_faces) > 0
+
 
 guids = list(dic_spaces.keys())  # List of all GUIDs
 for i, guid1 in enumerate(guids):

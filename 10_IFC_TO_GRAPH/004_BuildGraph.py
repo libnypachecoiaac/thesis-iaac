@@ -16,6 +16,27 @@ from neo4j_functions import (
     cleanup_isolated_nodes
 )
 
+def filter_spaces_by_category(spaces, category_value="Rooms"):
+    filtered_spaces = []
+    
+    for space in spaces:
+        # Get the property sets of the space
+        property_sets = space.IsDefinedBy
+        
+        # Iterate through the property sets and find the 'Other' set with Category
+        for prop_set in property_sets:
+            if hasattr(prop_set, "RelatingPropertyDefinition"):
+                props = prop_set.RelatingPropertyDefinition
+                
+                # Check if it's a property set and contains the 'Category' property
+                if hasattr(props, "HasProperties"):
+                    for prop in props.HasProperties:
+                        if prop.Name == "Category" and prop.NominalValue.wrappedValue == category_value:
+                            filtered_spaces.append(space)
+                            break
+                           
+    return filtered_spaces
+
 def filter_ifcspaces_by_storey(spaces, storey_name):
     filtered_spaces = []
     for space in spaces:
@@ -24,33 +45,6 @@ def filter_ifcspaces_by_storey(spaces, storey_name):
                 if rel.RelatingObject.Name == storey_name:
                     filtered_spaces.append(space)
                     break
-    return filtered_spaces
-
-def filter_spaces_by_name(spaces):
-    # For 0301
-    # if True:
-    #     exclude_pattern = re.compile(r'(-10$|^Area:)')
-    #     filtered_spaces = []
-        
-    #     for space in spaces:
-    #         if not exclude_pattern.search(space.Name):
-    #             filtered_spaces.append(space)
-    #     return filtered_spaces
-
-    # For HUS28
-    # digit_pattern = re.compile(r'^\d{1,5}$')
-    # filtered_spaces = []
-    # for space in spaces:
-    #     if digit_pattern.match(space.Name):
-    #         filtered_spaces.append(space)
-    # return filtered_spaces
-
-    # For 3501
-    exclude_pattern = re.compile(r'^Area:|[-]')
-    filtered_spaces = []
-    for space in spaces:
-        if not exclude_pattern.search(space.Name):
-            filtered_spaces.append(space)
     return filtered_spaces
 
 def main():
@@ -79,7 +73,7 @@ def main():
     # Load and filter Rooms
     all_spaces = ifc_file.by_type("IfcSpace")
     spaces = filter_ifcspaces_by_storey(all_spaces, storey_name)
-    spaces = filter_spaces_by_name(spaces)
+    spaces = filter_spaces_by_category(spaces)
 
     # Verbindung zu Neo4j herstellen
     uri = "bolt://localhost:7687"
