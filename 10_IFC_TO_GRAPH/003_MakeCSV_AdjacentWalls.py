@@ -141,12 +141,9 @@ def extract_geometry_info_from_shape_aspect(shape_aspect):
                                 print(f"    - {face.CoordIndex}")
     return coordinates_list, indices_list, voids_indices_list
 
-# Funktion zur Bereinigung der Indizes-Liste
 def clean_indices_list(indices_list, voids_indices_list):
-    # Erstelle eine Liste für die bereinigten Indizes
     cleaned_indices_list = []
 
-    # Iteriere durch die Indizes-Liste und prüfe, ob irgendein Index in der Voids-Liste enthalten ist
     for indices in indices_list:
         if not any(index in [void_index for void_tup in voids_indices_list for void_index in void_tup] for index in indices):
             cleaned_indices_list.append(indices)

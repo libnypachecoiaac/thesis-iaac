@@ -95,12 +95,12 @@ def extract_geometry_info_from_shape_aspect(shape_aspect):
     indices_list = []
     voids_indices_list = []
 
-    # Überprüfen, ob die ShapeAspect eine IfcPolygonalFaceSet enthält
+    # Check if ShapeAspect is a IfcPolygonalFaceSet 
     for representation in shape_aspect.ShapeRepresentations:
         if representation.is_a('IfcShapeRepresentation'):
             for item in representation.Items:
                 if item.is_a('IfcPolygonalFaceSet'):
-                    # IFCCARTESIANPOINTLIST3D (Koordinaten) extrahieren
+                    # extract IFCCARTESIANPOINTLIST3D (Koordinaten) 
                     if hasattr(item, 'Coordinates'):
                         coordinates = item.Coordinates.CoordList
                         coordinates_list.extend(coordinates)
@@ -108,7 +108,7 @@ def extract_geometry_info_from_shape_aspect(shape_aspect):
                         for coord in coordinates:
                             print(f"    - {coord}")
 
-                    # IFCINDEXEDPOLYGONALFACE (Flächen) und Voids extrahieren
+                    # extract IFCINDEXEDPOLYGONALFACE (Flächen) and Voids
                     if hasattr(item, 'Faces'):
                         faces = item.Faces
                         print("  IFCINDEXEDPOLYGONALFACE (Flächen):")
@@ -122,12 +122,10 @@ def extract_geometry_info_from_shape_aspect(shape_aspect):
                                 print(f"    - {face.CoordIndex}")
     return coordinates_list, indices_list, voids_indices_list
 
-# Funktion zur Bereinigung der Indizes-Liste
+
 def clean_indices_list(indices_list, voids_indices_list):
-    # Erstelle eine Liste für die bereinigten Indizes
     cleaned_indices_list = []
 
-    # Iteriere durch die Indizes-Liste und prüfe, ob irgendein Index in der Voids-Liste enthalten ist
     for indices in indices_list:
         if not any(index in [void_index for void_tup in voids_indices_list for void_index in void_tup] for index in indices):
             cleaned_indices_list.append(indices)
@@ -772,7 +770,7 @@ def get_rooms_contained_in_wall(wall_guid, uri, username, password):
     return room_guids
 
 def create_material_node(tx, material_name, unique_id):
-    # Erstelle den Material-Node mit einem eindeutigen Identifikator
+    # Create Material Node with unique Guid
     query = "MERGE (m:Material {name: $material_name, unique_id: $unique_id})"
     tx.run(query, material_name=material_name, unique_id=unique_id)
 
@@ -807,7 +805,7 @@ def find_touching_rooms(layer, relevant_room_topologies):
     return touching_rooms
 
 
-# Initialisiere die Datenbankverbindung
+# Connect to Neo4j
 driver = GraphDatabase.driver(uri, auth=(username, password))
 
 with driver.session() as session:
@@ -816,39 +814,38 @@ with driver.session() as session:
         print(f"Wall {i} - {wall_guid}")
         previous_unique_id = None
 
-        # Räume abrufen, die in der Wand enthalten sind
+        # get rooms that are connected to the wall
         relevant_rooms = get_rooms_contained_in_wall(wall_guid, uri, username, password)
 
-        # Räume auf relevante Topologien reduzieren
+        # reduce to relevant topos
         relevant_room_topologies = {room_guid: dic_spaces[room_guid] for room_guid in relevant_rooms if room_guid in dic_spaces}
 
         for index, layer in enumerate(layers):
             layer_dict = Topology.Dictionary(layer)
             material_name = Dictionary.ValueAtKey(layer_dict, "material")
             
-            if material_name:  # Überprüfe, ob der Materialname vorhanden ist
-                # Erstelle einen eindeutigen Identifikator für das Material
+            if material_name:  # check material name
+                # unique guid
                 unique_id = f"{wall_guid}_{index}_{material_name}"
 
-                # Erstelle den Material-Node für die Schicht mit dem eindeutigen Identifikator
+                # Write Material Node
                 session.execute_write(create_material_node, material_name, unique_id)
                 
-                # Verknüpfe die Schicht mit der Wand (ConsistsOf)
+                # Connect with Wall (constistOf)
                 session.execute_write(create_edge, wall_guid, unique_id, "Wall", "Material", "GlobalId", "unique_id", "ConsistsOf")
 
-                # Verknüpfe benachbarte Schichten (InternallyConnected)
+                # Connect Layers (InternallyConnected)
                 if previous_unique_id:
                     session.execute_write(create_edge, previous_unique_id, unique_id, "Material", "Material", "unique_id", "unique_id", "InternallyConnected")
 
-                # Aktualisiere den vorherigen unique_id
                 previous_unique_id = unique_id
 
-                # Überprüfe, ob die Schicht Räume berührt (nur für die äußersten Schichten relevant)
+                # Check outermost layers 
                 if index == 0 or index == len(layers) - 1:
                     touching_rooms = find_touching_rooms(layer, relevant_room_topologies)
                     print("Berührende Räume:", touching_rooms)
                     for room_guid in touching_rooms:
-                        # Erstelle die 'IsFacing' Beziehung
+                        # Create relationship (isFacing)
                         session.execute_write(create_edge, unique_id, room_guid, "Material", "Room", "unique_id", "GlobalId", "IsFacing")
             else:
                 print(f"Materialname fehlt für eine Schicht in Wand {wall_guid}. Überspringe diese Schicht.")

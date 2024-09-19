@@ -75,41 +75,41 @@ def main():
     spaces = filter_ifcspaces_by_storey(all_spaces, storey_name)
     spaces = filter_spaces_by_category(spaces)
 
-    # Verbindung zu Neo4j herstellen
+    # Connect to Neo4J
     uri = "bolt://localhost:7687"
     driver = GraphDatabase.driver(uri, auth=(username, password))
 
-    # Knoten in Neo4j erstellen und mit Daten anreichern
+    # Create Nodes and write Data
     create_ifcspace_nodes(driver, spaces, storey_name)
 
-    # Türen und Fenster als Knoten hinzufügen und Verbindungen zu Räumen herstellen
+    # Add Doors and Window as Nodes and add connections to rooms
     process_doors_and_windows(driver, ifc_file, csv_doors, "IfcDoor", "Door", storey_name)
     process_doors_and_windows(driver, ifc_file, csv_windows, "IfcWindow", "Window", storey_name)
 
-    # Wände als Knoten hinzufügen
+    # Add Walls
     process_walls(driver, ifc_file, storey_name)
 
-    # Wände mit Räumen verbinden
+    # Connect Walls with rooms
     process_walls_and_rooms(driver, csv_walls, ifc_file.by_type("IfcWall"))
 
-    # Wände untereinander verbinden
+    # Connect Walls to each other
     process_wall_adjacency(driver, csv_wall_adjacency, ifc_file.by_type("IfcWall"))
 
-    # Fenster und Türen mit Wänden verbinden
+    # Connect Windows and Doors to their Host
     process_element_hosts(driver, ifc_file, csv_host_elements, ifc_file.by_type("IfcWall"))
 
-    # Verbindungen zwischen Räumen erstellen
+    # Create Connections between Rooms
     process_direct_connections(driver, csv_room_to_room)
     process_element_connections(driver, csv_doors, "Door")
     process_element_connections(driver, csv_windows, "Window")
 
-    # Neue Funktion zum Hinzufügen von Einrichtungsgegenständen aufrufen
+    # Add Furniture
     process_furniture(driver, ifc_file, storey_name)
 
-    # Bereinigung von isolierten Wall- und Furniture-Nodes
+    # Clean up isolated Nodes
     cleanup_isolated_nodes(driver, storey_name)
 
-    # Verbindung schließen
+    # Close Neo4j
     driver.close()
     print("IfcSpaces, Türen, Fenster, Wände und Verbindungen wurden erfolgreich in Neo4j importiert.")
 

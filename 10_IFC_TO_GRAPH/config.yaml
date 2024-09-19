@@ -2,7 +2,7 @@ ifc_file: "2601.ifc"
 storey_name: "PLAN 11, TRH 1"
 uri: "bolt://localhost:7687"
 username: "neo4j"
-password: "iaacthesis"
+password: "testdbms"
 
 # testdbms
 # iaacthesis
